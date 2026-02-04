@@ -1,0 +1,72 @@
+.carousel-section {
+  padding: 40px 5%;
+  background: #f8fafc;
+}
+
+.carousel-wrapper {
+  display: flex;
+  gap: 20px;
+  overflow: hidden;
+  scroll-behavior: smooth;
+}
+
+.carousel-card {
+  flex: 1 0 30%; /* 3 cards visible on desktop */
+  background: white;
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  cursor: pointer;
+}
+
+.carousel-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+}
+
+.carousel-card img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+}
+
+.carousel-info {
+  padding: 15px;
+}
+
+.carousel-info h3 {
+  margin: 5px 0;
+  font-size: 1.2rem;
+}
+
+.carousel-info p {
+  margin: 3px 0;
+  color: #555;
+}
+
+.carousel-link {
+  display: inline-block;
+  margin-top: 10px;
+  color: #0d6efd;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.carousel-link:hover {
+  text-decoration: underline;
+}
+
+/* Tablet - 2 cards */
+@media (max-width: 1024px) {
+  .carousel-card {
+    flex: 1 0 45%;
+  }
+}
+
+/* Mobile - 1 card */
+@media (max-width: 768px) {
+  .carousel-card {
+    flex: 1 0 80%;
+  }
+}

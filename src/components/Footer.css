@@ -1,0 +1,70 @@
+/* =========================
+   Footer Layout
+========================= */
+.footer {
+  background: linear-gradient(135deg, #020617, #0f172a);
+  color: #cbd5f5;
+  padding: 28px 10%;
+  margin-top: auto; /* pushes footer to bottom */
+  box-shadow: 0 -6px 25px rgba(0, 0, 0, 0.25);
+}
+
+.footer-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+/* =========================
+   Footer Text
+========================= */
+.footer-text {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  opacity: 0.9;
+}
+
+/* =========================
+   Social Icons
+========================= */
+.social-icons {
+  display: flex;
+  gap: 18px;
+}
+
+.social-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #cbd5f5;
+  font-size: 1.2rem;
+  padding: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  transition: all 0.3s ease;
+}
+
+/* Hover glow */
+.social-link:hover {
+  color: #ffffff;
+  background: linear-gradient(135deg, #2563eb, #38bdf8);
+  box-shadow: 0 10px 25px rgba(56, 189, 248, 0.45);
+}
+
+/* =========================
+   Mobile Responsive
+========================= */
+@media (max-width: 768px) {
+  .footer {
+    padding: 24px 6%;
+  }
+
+  .footer-content {
+    flex-direction: column;
+    text-align: center;
+  }
+}

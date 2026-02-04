@@ -1,0 +1,198 @@
+/* ============================= */
+/* GLOBAL PAGE */
+/* ============================= */
+
+.package-details-page {
+  font-family: inherit;
+  scroll-behavior: smooth;
+  background: #ffffff;
+}
+
+/* ============================= */
+/* HERO SECTION */
+/* ============================= */
+
+.details-hero {
+  height: 75vh;
+  background-size: cover;
+  background-position: center;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 10%;
+}
+
+.details-hero h1 {
+  font-size: 3.2rem;
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+.details-hero p {
+  font-size: 1.2rem;
+  opacity: 0.9;
+}
+
+/* ============================= */
+/* STICKY NAV */
+/* ============================= */
+
+.details-nav {
+  position: sticky;
+  top: 80px; /* below header */
+  background: #ffffff;
+  padding: 20px 10%;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  z-index: 20;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+}
+
+.details-nav button {
+  padding: 14px 28px;
+  font-size: 1rem;
+  border-radius: 999px;
+  border: none;
+  background: linear-gradient(135deg, #0d6efd, #2563eb);
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.details-nav button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(13,110,253,0.35);
+}
+
+/* ============================= */
+/* CTA */
+/* ============================= */
+
+.details-cta {
+  padding: 50px 10%;
+  display: flex;
+  justify-content: center;
+  background: #f8fafc;
+}
+
+.add-to-cart-btn {
+  padding: 18px 44px;
+  font-size: 1.15rem;
+  border-radius: 999px;
+  border: none;
+  background: linear-gradient(135deg, #0d6efd, #2563eb);
+  color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 18px 40px rgba(13,110,253,0.35);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.add-to-cart-btn:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 22px 50px rgba(13,110,253,0.45);
+}
+
+/* ============================= */
+/* SECTIONS */
+/* ============================= */
+
+.details-section {
+  padding: 90px 10%;
+}
+
+.details-section.alt {
+  background: #f8fafc;
+}
+
+.details-section h2 {
+  font-size: 2.2rem;
+  margin-bottom: 25px;
+  color: #0d6efd;
+}
+
+/* ============================= */
+/* CONTENT BOXES */
+/* ============================= */
+
+.details-box {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 30px;
+  box-shadow: 0 12px 35px rgba(0,0,0,0.08);
+  max-width: 900px;
+}
+
+.details-box p {
+  font-size: 1.05rem;
+  margin-bottom: 16px;
+  color: #334155;
+}
+
+.details-box ul {
+  padding-left: 20px;
+  line-height: 1.8;
+  font-size: 1rem;
+  color: #334155;
+}
+
+/* ============================= */
+/* ITINERARY */
+/* ============================= */
+
+.itinerary-box {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 24px 28px;
+  margin-bottom: 18px;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.08);
+  max-width: 900px;
+}
+
+.itinerary-box h4 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #0d6efd;
+}
+
+.itinerary-box p {
+  font-size: 1rem;
+  color: #334155;
+  line-height: 1.6;
+}
+
+/* ============================= */
+/* MOBILE FIXES */
+/* ============================= */
+
+@media (max-width: 768px) {
+  .details-hero {
+    height: 65vh;
+    padding: 0 6%;
+  }
+
+  .details-hero h1 {
+    font-size: 2.4rem;
+  }
+
+  .details-nav {
+    padding: 16px 6%;
+  }
+
+  .details-nav button {
+    width: 100%;
+    text-align: center;
+  }
+
+  .details-section {
+    padding: 70px 6%;
+  }
+
+  .details-cta {
+    padding: 40px 6%;
+  }
+}

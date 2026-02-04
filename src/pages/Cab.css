@@ -1,0 +1,101 @@
+.cab-page {
+  padding: 80px 10%;
+}
+
+/* HERO */
+.cab-hero {
+  text-align: center;
+  margin-bottom: 50px;
+}
+
+.cab-hero h1 {
+  font-size: 2.4rem;
+  margin-bottom: 12px;
+}
+
+.cab-hero p {
+  color: #475569;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+/* SEARCH */
+.cab-search {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 40px;
+}
+
+.cab-search input {
+  width: 100%;
+  max-width: 420px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  border: 1px solid #cbd5f5;
+  font-size: 1rem;
+}
+
+/* LIST */
+.cab-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 30px;
+}
+
+/* CARD */
+.cab-card {
+  background: #ffffff;
+  padding: 26px;
+  border-radius: 18px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.cab-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.12);
+}
+
+.cab-card h3 {
+  font-size: 1.4rem;
+  margin-bottom: 10px;
+}
+
+.cab-price {
+  color: var(--primary);
+  margin-bottom: 12px;
+}
+
+.cab-services {
+  list-style: none;
+  padding: 0;
+  margin-bottom: 20px;
+}
+
+.cab-services li {
+  margin-bottom: 6px;
+  color: #334155;
+}
+
+/* ACTIONS */
+.cab-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.no-results {
+  text-align: center;
+  grid-column: 1 / -1;
+  color: #64748b;
+}
+
+/* MOBILE */
+@media (max-width: 768px) {
+  .cab-page {
+    padding: 60px 6%;
+  }
+
+  .cab-actions {
+    flex-direction: column;
+  }
+}
