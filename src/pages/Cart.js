@@ -11,6 +11,7 @@ function Cart() {
   const navigate = useNavigate();
   const [showBreakdown, setShowBreakdown] = useState({});
 
+  /* 🔁 Payment Mode */
   const mockPaymentsEnabled = useMemo(() => {
     const mode = (process.env.REACT_APP_PAYMENT_MODE || "").toLowerCase();
     if (mode === "live") return false;
@@ -18,12 +19,14 @@ function Cart() {
     return process.env.NODE_ENV !== "production";
   }, []);
 
+  const API_URL = process.env.REACT_APP_API_URL || "";
+
   const [showDetails, setShowDetails] = useState(false);
   const [travelDate, setTravelDate] = useState("");
   const [travellerCount, setTravellerCount] = useState(1);
   const [travellers, setTravellers] = useState([{ name: "", age: "" }]);
 
-  /* ✅ FIXED ADVANCE (NOT DEPENDENT ON CART VALUE) */
+  /* ✅ Fixed ₹1000 advance */
   const totalAdvance = cartItems.length > 0 ? ADVANCE_AMOUNT : 0;
 
   const toggleBreakdown = (id) => {
@@ -64,12 +67,10 @@ function Cart() {
     if (status === "success") clearCart();
 
     const path = status === "success" ? "/payment-success" : "/payment-failed";
-    navigate(
-      `${path}?mock=1&order_id=${orderId}&amount=${ADVANCE_AMOUNT}`
-    );
+    navigate(`${path}?mock=1&order_id=${orderId}&amount=${ADVANCE_AMOUNT}`);
   };
 
-  /* 💳 CC AVENUE PAYMENT */
+  /* 💳 LIVE PAYMENT */
   const handleFinalPayment = async () => {
     if (!isFormValid) return;
 
@@ -80,14 +81,14 @@ function Cart() {
 
     const payload = {
       order_id: `ORDER_${Date.now()}`,
-      amount: ADVANCE_AMOUNT.toFixed(2), // 🔥 ALWAYS 1000
+      amount: ADVANCE_AMOUNT.toFixed(2),
       billing_name: travellers[0]?.name || "Guest",
       billing_email: "guest@example.com",
       billing_tel: "9999999999",
     };
 
     try {
-      const res = await fetch("/api/initiate-payment", {
+      const res = await fetch(`${API_URL}/api/initiate-payment`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -154,12 +155,17 @@ function Cart() {
         </div>
 
         {cartItems.map((item) => {
-          const numericPrice = Number(item.price.replace(/[^0-9]/g, ""));
+          const numericPrice =
+            typeof item.price === "number"
+              ? item.price
+              : Number((item.price || "").toString().replace(/[^0-9]/g, "")) || 0;
+
+          const balance = Math.max(0, numericPrice - ADVANCE_AMOUNT);
 
           return (
             <div key={item.id} className="cart-row">
               <div className="cart-package">
-                <img src={item.image} alt={item.name} />
+                {item.image && <img src={item.image} alt={item.name} />}
                 <span>{item.name}</span>
               </div>
 
@@ -182,8 +188,8 @@ function Cart() {
               {showBreakdown[item.id] && (
                 <div className="payment-breakdown">
                   <p><strong>Full Price:</strong> ₹{numericPrice}</p>
-                  <p><strong>Advance Payable Now:</strong> ₹1000</p>
-                  <p><strong>Balance:</strong> ₹{numericPrice - 1000}</p>
+                  <p><strong>Advance Payable Now:</strong> ₹{ADVANCE_AMOUNT}</p>
+                  <p><strong>Balance:</strong> ₹{balance}</p>
                 </div>
               )}
             </div>
@@ -192,7 +198,7 @@ function Cart() {
       </div>
 
       <div className="cart-summary">
-        <p><strong>Advance Payable Now:</strong> ₹1000</p>
+        <p><strong>Advance Payable Now:</strong> ₹{ADVANCE_AMOUNT}</p>
         <p style={{ fontSize: "0.9rem", opacity: 0.8 }}>
           ₹1000 is an adjustable advance. Balance payable later.
         </p>
