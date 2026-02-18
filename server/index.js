@@ -7,6 +7,7 @@ const cors = require("cors");
 const app = express();
 const { decrypt } = require("./ccavenue");
 const paymentRoutes = require("./payment");
+const authRoutes = require("./auth");
 
 console.log(
   "🔐 CC Avenue Working Key Length:",
@@ -22,21 +23,24 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api", paymentRoutes);
+app.use("/api/auth", authRoutes);
 
 app.post("/payment-response", (req, res) => {
+  const frontend = process.env.FRONTEND_BASE_URL || "http://localhost:3000";
   try {
     const encryptedResponse = req.body.encResp;
     const decryptedData = decrypt(encryptedResponse);
-    console.log("✅ Payment Success:", decryptedData);
-    res.redirect("http://localhost:3000/payment-success");
+    console.log("✅ Payment Response (decrypted):", decryptedData);
+    res.redirect(`${frontend}/payment-success`);
   } catch (e) {
     console.error(e);
-    res.redirect("http://localhost:3000/payment-failed");
+    res.redirect(`${frontend}/payment-failed`);
   }
 });
 
 app.post("/payment-cancel", (req, res) => {
-  res.redirect("http://localhost:3000/payment-failed");
+  const frontend = process.env.FRONTEND_BASE_URL || "http://localhost:3000";
+  res.redirect(`${frontend}/payment-failed`);
 });
 
 app.listen(5000, () => {

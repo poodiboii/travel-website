@@ -199,21 +199,95 @@
   }
 }
 /* ===============================
-   Traveller Details Modal – ADD ONLY
+   Traveller Details Modal – ENHANCED
    =============================== */
 
-/* Improve modal content spacing */
-.modal-card h2 {
-  margin-bottom: 18px;
-  font-size: 1.5rem;
-  font-weight: 600;
+/* Ensure overlay/card look premium (Cart.js relies on these classes) */
+.modal-overlay{
+  position: fixed;
+  inset: 0;
+  background: rgba(2,6,23,.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+  z-index: 50;
 }
+
+.modal-card{
+  width: min(720px, 96vw);
+  max-height: 86vh;
+  overflow: auto;
+  background: rgba(255,255,255,.92);
+  border: 1px solid rgba(15,23,42,.10);
+  border-radius: 22px;
+  box-shadow: 0 34px 120px rgba(0,0,0,.35);
+  padding: 22px;
+  position: relative;
+}
+
+.close-btn{
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid rgba(15,23,42,.12);
+  background: rgba(255,255,255,.85);
+  cursor: pointer;
+}
+
+.modal-card h2 {
+  margin-bottom: 14px;
+  font-size: 1.55rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.td-grid{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.td-field label{
+  display:block;
+  font-weight: 700;
+  font-size: .92rem;
+  color:#374151;
+  margin-bottom: 6px;
+}
+
+.td-summary{
+  margin-top: 12px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(15,23,42,.10);
+  background: linear-gradient(135deg, rgba(14,165,233,.10), rgba(37,99,235,.08));
+}
+
+.td-k{font-size:.9rem; font-weight:700; color:#475569}
+.td-v{font-size:1.35rem; font-weight:800; color:#0f172a; letter-spacing:-.02em}
+.td-badge{font-weight:800; font-size:.9rem; color:#1d4ed8; padding: 8px 10px; border-radius: 999px; background: rgba(255,255,255,.75); border: 1px solid rgba(29,78,216,.18)}
+
+.travellers-grid{margin-top: 12px; display:flex; flex-direction:column; gap: 10px}
+.traveller-row{padding: 12px 12px; border-radius: 16px; background: rgba(255,255,255,.85); border: 1px solid rgba(15,23,42,.08)}
+.traveller-title{font-weight:800; color:#0f172a; margin-bottom: 8px}
+.traveller-fields{display:grid; grid-template-columns: 2fr 1fr; gap: 10px}
 
 /* Labels inside modal */
 .modal-card label {
   display: block;
-  margin-top: 14px;
-  font-weight: 600;
+  margin-top: 0;
+  font-weight: 700;
   font-size: 0.95rem;
   color: #374151;
 }
@@ -222,11 +296,11 @@
 .modal-card input,
 .modal-card select {
   width: 100%;
-  padding: 10px 12px;
-  margin-top: 6px;
-  border-radius: 10px;
-  border: 1px solid #d1d5db;
-  font-size: 0.95rem;
+  padding: 12px 12px;
+  margin-top: 0;
+  border-radius: 14px;
+  border: 1px solid rgba(15,23,42,.12);
+  font-size: 0.98rem;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -277,8 +351,11 @@
 /* Mobile refinement */
 @media (max-width: 768px) {
   .modal-card {
-    padding: 24px;
+    padding: 18px;
   }
+  .td-grid{grid-template-columns: 1fr}
+  .traveller-fields{grid-template-columns: 1fr}
+  .td-summary{flex-direction: column; align-items:flex-start}
 }
 /* =============================== */
 /* 🧳 EMPTY CART – FIXED LAYOUT */

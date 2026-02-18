@@ -1,119 +1,173 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import {
+  FaMagnifyingGlass,
+  FaLocationDot,
+  FaStar,
+  FaBed,
+  FaCheck,
+} from "react-icons/fa6";
 
+import { hotels, formatINR } from "../data/hotels";
+import { useCart } from "../context/CartContext";
 
-/* Sample hotel data */
-export const hotels = [
-  {
-    id: "goa-resort",
-    name: "Goa Beach Resort",
-    city: "Goa",
-    price: 5999,
-    rating: 4.5,
-    image: "/assets/hotel-goa.png",
-  },
-  {
-    id: "manali-hills",
-    name: "Manali Hill View Hotel",
-    city: "Manali",
-    price: 4499,
-    rating: 4.2,
-    image: "/assets/hotel-manali.png",
-  },
-];
+// Reuse Packages portal styling for consistency
+import "./Packages.css";
 
 function HotelsList() {
-  const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState("default");
-  const [wishlist, setWishlist] = useState([]);
+  const nav = useNavigate();
+  const { addToCart } = useCart();
 
-  useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("hotelWishlist")) || [];
-    setWishlist(saved);
-  }, []);
+  const [q, setQ] = useState("");
+  const [sort, setSort] = useState("featured");
 
-  useEffect(() => {
-    localStorage.setItem("hotelWishlist", JSON.stringify(wishlist));
-  }, [wishlist]);
+  const filtered = useMemo(() => {
+    const normalized = q.trim().toLowerCase();
+    let list = hotels.filter((h) => {
+      const hay = `${h.name} ${h.city} ${h.country}`.toLowerCase();
+      return !normalized || hay.includes(normalized);
+    });
 
-  const toggleWishlist = (id) => {
-    setWishlist((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
-    );
-  };
+    if (sort === "priceLow") list = [...list].sort((a, b) => a.pricePerNight - b.pricePerNight);
+    if (sort === "priceHigh") list = [...list].sort((a, b) => b.pricePerNight - a.pricePerNight);
+    if (sort === "rating") list = [...list].sort((a, b) => (b.rating || 0) - (a.rating || 0));
 
-  let filtered = hotels.filter(
-    (hotel) =>
-      hotel.name.toLowerCase().includes(search.toLowerCase()) ||
-      hotel.city.toLowerCase().includes(search.toLowerCase())
-  );
-
-  if (sortBy === "priceLow")
-    filtered.sort((a, b) => a.price - b.price);
-  if (sortBy === "priceHigh")
-    filtered.sort((a, b) => b.price - a.price);
-  if (sortBy === "rating")
-    filtered.sort((a, b) => b.rating - a.rating);
+    return list;
+  }, [q, sort]);
 
   return (
-    <section className="packages-section">
-      <div className="packages-header">
-        <h2>AVAILABLE HOTELS</h2>
-
-        <input
-          className="package-search"
-          placeholder="Search by city or hotel..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-
-        <select
-          className="package-filter"
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value)}
+    <div className="packages-page">
+      <div className="container">
+        <motion.div
+          className="packages-hero"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, ease: "easeOut" }}
         >
-          <option value="default">Sort By</option>
-          <option value="priceLow">Price: Low → High</option>
-          <option value="priceHigh">Price: High → Low</option>
-          <option value="rating">Rating</option>
-        </select>
-      </div>
+          <div className="packages-hero-top">
+            <div>
+              <h1 className="packages-title">Hotels you’ll love</h1>
+              <p className="packages-sub">
+                Clean listings, transparent pricing and a smooth “Reserve & Pay Advance” flow.
+              </p>
+            </div>
+            <Link to="/custom-package" className="btn btn-primary">
+              Plan a Trip
+            </Link>
+          </div>
 
-      <div className="packages-wrapper">
-        {filtered.map((hotel) => (
-          <div
-            key={hotel.id}
-            className="package-row"
-            style={{
-              backgroundImage: `linear-gradient(
-                rgba(0,0,0,0.55),
-                rgba(0,0,0,0.55)
-              ), url(${hotel.image})`,
-            }}
-          >
-            <button
-              className="wishlist-btn"
-              onClick={() => toggleWishlist(hotel.id)}
-            >
-              {wishlist.includes(hotel.id) ? "❤️" : "🤍"}
-            </button>
-
-            <div className="package-info">
-              <h3>{hotel.name}</h3>
-              <p>{hotel.city}</p>
-              <p>⭐ {hotel.rating}</p>
+          <div className="packages-controls">
+            <div className="control">
+              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                <FaMagnifyingGlass color="#64748b" />
+                <input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Search city or hotel (Goa, Dubai…)"
+                />
+              </div>
             </div>
 
-            <div className="package-action">
-              <p className="package-price">₹{hotel.price}/night</p>
-              <Link to={`/hotels/${hotel.id}`} className="package-link">
-                View Details →
-              </Link>
+            <div className="control" style={{ gridColumn: "2 / span 2" }}>
+              <select value={sort} onChange={(e) => setSort(e.target.value)}>
+                <option value="featured">Featured</option>
+                <option value="rating">Top rated</option>
+                <option value="priceLow">Price: low → high</option>
+                <option value="priceHigh">Price: high → low</option>
+              </select>
             </div>
           </div>
-        ))}
+        </motion.div>
+
+        <div className="packages-grid">
+          {filtered.map((h, i) => (
+            <motion.article
+              key={h.id}
+              className="pkg-card"
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.04 * i, duration: 0.45, ease: "easeOut" }}
+              onClick={(e) => {
+                const interactive = e.target.closest("a, button");
+                if (interactive) return;
+                nav(`/hotels/${h.id}`);
+              }}
+              role="link"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") nav(`/hotels/${h.id}`);
+              }}
+            >
+              <Link to={`/hotels/${h.id}`} aria-label={`Open ${h.name}`}>
+                <img className="pkg-img" src={h.image} alt={h.name} />
+              </Link>
+
+              <div className="pkg-body">
+                <div className="pkg-meta">
+                  <span className="pkg-chip">
+                    <FaLocationDot /> {h.city}
+                  </span>
+                  <span className="pkg-chip muted">
+                    <FaStar /> {h.rating}
+                  </span>
+                  <span className="pkg-chip muted">
+                    <FaBed /> {h.country}
+                  </span>
+                </div>
+
+                <div>
+                  <div className="pkg-name">{h.name}</div>
+                  <div className="pkg-desc">{h.description}</div>
+                </div>
+
+                <div className="pkg-footer">
+                  <div className="pkg-price">
+                    {formatINR(h.pricePerNight)}
+                    <small>per night • advance {h.advancePercent}%</small>
+                  </div>
+
+                  <div className="pkg-actions">
+                    <Link to={`/hotels/${h.id}`} className="btn btn-ghost">
+                      View details
+                    </Link>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={() => {
+                        addToCart({
+                          id: h.id,
+                          name: h.name,
+                          price: formatINR(h.pricePerNight),
+                          image: h.image,
+                        });
+                        nav("/cart");
+                      }}
+                    >
+                      Pay advance
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
+                  {h.amenities.slice(0, 3).map((a) => (
+                    <span key={a} className="pkg-chip muted">
+                      <FaCheck /> {a}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </motion.article>
+          ))}
+        </div>
+
+        {filtered.length === 0 && (
+          <div className="container" style={{ marginTop: 18 }}>
+            <p className="lead">No results. Try a different search.</p>
+          </div>
+        )}
       </div>
-    </section>
+    </div>
   );
 }
 

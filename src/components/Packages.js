@@ -1,196 +1,177 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { FaMagnifyingGlass, FaGlobe, FaLocationDot, FaClock } from "react-icons/fa6";
+
+import { packages, formatINR } from "../data/packages";
+import { useCart } from "../context/CartContext";
 import "./Packages.css";
 
-/* Images (temporary reuse – you can replace later) */
-import thailandImg from "../assets/bali-international-trip.png";
-import singaporeImg from "../assets/dubai-luxury-tour.png";
-import indonesiaImg from "../assets/bali-international-trip.png";
-import dubaiImg from "../assets/dubai-luxury-tour.png";
-import vietnamImg from "../assets/bali-international-trip.png";
-
-/* REAL PACKAGES DATA */
-export const packages = [
-  {
-    id: "4n-thailand-paradise",
-    name: "4N Thai Paradise Getaway",
-    price: "₹19,000",
-    duration: "4 Nights",
-    description:
-      "3★ Hotel + Coral Island Tour + Safari World & Marine Park + Intercity & Airport Transfers. Valid till 31 March 2026.",
-    type: "international",
-    image: thailandImg,
-  },
-  {
-    id: "3n-singapore",
-    name: "3N Singapore Package",
-    price: "₹46,499",
-    duration: "3 Nights",
-    description:
-      "Hotel Boss (4★) + Universal Studios + Gardens by the Bay + Night Safari + Sentosa Cable Car + Madame Tussauds + Wings of Time + Airport Transfers.",
-    type: "international",
-    image: singaporeImg,
-  },
-  {
-    id: "5n-indonesia-kuta-ubud",
-    name: "5N Indonesia Package (Kuta & Ubud)",
-    price: "₹31,999",
-    duration: "5 Nights",
-    description:
-      "4★ Hotels + Water Sports + Nusa Penida Tour + Kintamani Tour + Bali Swing + ATV Ride + Tegenungan Waterfall + Airport Transfers.",
-    type: "international",
-    image: indonesiaImg,
-  },
-  {
-    id: "4n-dubai",
-    name: "4N Dubai Package",
-    price: "₹47,699",
-    duration: "4 Nights",
-    description:
-      "Jannah Hotel Apartments & Villas + Breakfast + Burj Khalifa (124 & 125) + Dubai City Tour + Desert Safari + Dhow Cruise + UAE Visa + Airport Transfers.",
-    type: "international",
-    image: dubaiImg,
-  },
-  {
-    id: "4n-vietnam-hanoi-danang",
-    name: "4N Vietnam Package (Hanoi → Danang)",
-    price: "₹29,499",
-    duration: "4 Nights",
-    description:
-      "Hotels + Halong Bay Cruise + Hanoi City Tour + Hoi An Ancient Town + Ba Na Hills + Golden Bridge + Indian Buffet Lunch + Airport Transfers.",
-    type: "international",
-    image: vietnamImg,
-  },
-];
-
 function Packages() {
-  const [selectedType, setSelectedType] = useState("all");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState("default");
+  const nav = useNavigate();
+  const { addToCart } = useCart();
 
-  /* ❤️ Wishlist */
-  const [wishlist, setWishlist] = useState([]);
+  const [q, setQ] = useState("");
+  const [category, setCategory] = useState("all");
+  const [sort, setSort] = useState("featured");
 
-  useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("wishlist")) || [];
-    setWishlist(saved);
-  }, []);
+  const filtered = useMemo(() => {
+    const normalized = q.trim().toLowerCase();
 
-  useEffect(() => {
-    localStorage.setItem("wishlist", JSON.stringify(wishlist));
-  }, [wishlist]);
+    let list = packages.filter((p) => {
+      const matchesCategory = category === "all" || p.category === category;
+      const hay = `${p.title} ${p.destination} ${p.country}`.toLowerCase();
+      const matchesQ = !normalized || hay.includes(normalized);
+      return matchesCategory && matchesQ;
+    });
 
-  const toggleWishlist = (id) => {
-    setWishlist((prev) =>
-      prev.includes(id)
-        ? prev.filter((item) => item !== id)
-        : [...prev, id]
-    );
-  };
+    if (sort === "priceLow") list = [...list].sort((a, b) => a.pricePerPerson - b.pricePerPerson);
+    if (sort === "priceHigh") list = [...list].sort((a, b) => b.pricePerPerson - a.pricePerPerson);
+    if (sort === "rating") list = [...list].sort((a, b) => (b.rating || 0) - (a.rating || 0));
 
-  /* Filter + Search */
-  let filtered = packages.filter((pkg) => {
-    const matchesType =
-      selectedType === "all" || pkg.type === selectedType;
-
-    const matchesSearch = pkg.name
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-
-    return matchesType && matchesSearch;
-  });
-
-  /* Sorting */
-  if (sortBy === "priceLow") {
-    filtered.sort(
-      (a, b) =>
-        Number(a.price.replace(/[^0-9]/g, "")) -
-        Number(b.price.replace(/[^0-9]/g, ""))
-    );
-  }
-
-  if (sortBy === "priceHigh") {
-    filtered.sort(
-      (a, b) =>
-        Number(b.price.replace(/[^0-9]/g, "")) -
-        Number(a.price.replace(/[^0-9]/g, ""))
-    );
-  }
+    return list;
+  }, [q, category, sort]);
 
   return (
-    <section className="packages-section" id="packages">
-      <div className="packages-header">
-        <h2>AVAILABLE PACKAGES</h2>
-
-        <div className="package-search-wrapper">
-          <input
-            type="text"
-            placeholder=" Search by destination..."
-            className="package-search"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-
-        <select
-          className="package-filter"
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value)}
+    <div className="packages-page">
+      <div className="container">
+        <motion.div
+          className="packages-hero"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, ease: "easeOut" }}
         >
-          <option value="default">Sort By</option>
-          <option value="priceLow">Price: Low to High</option>
-          <option value="priceHigh">Price: High to Low</option>
-        </select>
+          <div className="packages-hero-top">
+            <div>
+              <h1 className="packages-title">Packages that feel premium</h1>
+              <p className="packages-sub">
+                Transparent inclusions, clean itineraries, and a smooth “Book & Pay” checkout.
+                Pick a destination—or use search and filters.
+              </p>
+            </div>
 
-        <select
-          className="package-filter"
-          value={selectedType}
-          onChange={(e) => setSelectedType(e.target.value)}
-        >
-          <option value="all">All Packages</option>
-          <option value="international">International</option>
-        </select>
-      </div>
+            <Link to="/custom-package" className="btn btn-primary">
+              Plan a Custom Trip
+            </Link>
+          </div>
 
-      <div className="packages-wrapper">
-        {filtered.length === 0 ? (
-          <p>No packages found.</p>
-        ) : (
-          filtered.map((pkg) => (
-            <div
-              key={pkg.id}
-              className="package-row"
-              style={{
-                backgroundImage: `linear-gradient(
-                  rgba(0,0,0,0.55),
-                  rgba(0,0,0,0.55)
-                ), url(${pkg.image})`,
-              }}
-            >
-              <button
-                className="wishlist-btn"
-                onClick={() => toggleWishlist(pkg.id)}
-              >
-                {wishlist.includes(pkg.id) ? "❤️" : "🤍"}
-              </button>
-
-              <div className="package-info">
-                <h3>{pkg.name}</h3>
-                <p className="package-duration">{pkg.duration}</p>
-                <p className="package-description">{pkg.description}</p>
-              </div>
-
-              <div className="package-action">
-                <p className="package-price">{pkg.price} / person</p>
-                <Link to={`/packages/${pkg.id}`} className="package-link">
-                  Know More →
-                </Link>
+          <div className="packages-controls">
+            <div className="control">
+              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                <FaMagnifyingGlass color="#64748b" />
+                <input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Search destination (Dubai, Bali, Goa…)"
+                />
               </div>
             </div>
-          ))
+
+            <div className="control">
+              <select value={category} onChange={(e) => setCategory(e.target.value)}>
+                <option value="all">All</option>
+                <option value="international">International</option>
+                <option value="domestic">Domestic</option>
+              </select>
+            </div>
+
+            <div className="control">
+              <select value={sort} onChange={(e) => setSort(e.target.value)}>
+                <option value="featured">Featured</option>
+                <option value="rating">Top rated</option>
+                <option value="priceLow">Price: low → high</option>
+                <option value="priceHigh">Price: high → low</option>
+              </select>
+            </div>
+          </div>
+        </motion.div>
+
+        <div className="packages-grid">
+          {filtered.map((p, i) => (
+            <motion.article
+              key={p.id}
+              className="pkg-card"
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.04 * i, duration: 0.45, ease: "easeOut" }}
+              onClick={(e) => {
+                // If user clicks a button/link inside the card, don't override.
+                const interactive = e.target.closest("a, button");
+                if (interactive) return;
+                nav(`/packages/${p.id}`);
+              }}
+              role="link"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") nav(`/packages/${p.id}`);
+              }}
+            >
+              {/* Clickable hero area */}
+              <Link to={`/packages/${p.id}`} aria-label={`Open ${p.title}`}>
+                <img className="pkg-img" src={p.image} alt={p.title} />
+              </Link>
+
+              <div className="pkg-body">
+                <div className="pkg-meta">
+                  <span className="pkg-chip">
+                    <FaLocationDot /> {p.destination}
+                  </span>
+                  <span className="pkg-chip muted">
+                    <FaGlobe /> {p.country}
+                  </span>
+                  <span className="pkg-chip muted">
+                    <FaClock /> {p.duration.nights}N/{p.duration.days}D
+                  </span>
+                </div>
+
+                <div>
+                  <div className="pkg-name">{p.title}</div>
+                  <div className="pkg-desc">
+                    {p.highlights.slice(0, 2).join(" • ")}
+                  </div>
+                </div>
+
+                <div className="pkg-footer">
+                  <div className="pkg-price">
+                    {formatINR(p.pricePerPerson)}
+                    <small>per person • advance {p.advancePercent}%</small>
+                  </div>
+
+                  <div className="pkg-actions">
+                    <Link to={`/packages/${p.id}`} className="btn btn-ghost">
+                      View details
+                    </Link>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={() => {
+                        // Add to cart and take user to cart to finalize later
+                        addToCart({
+                          id: p.id,
+                          name: p.title,
+                          price: formatINR(p.pricePerPerson),
+                          duration: `${p.duration.nights} Nights`,
+                          image: p.image,
+                        });
+                        nav("/cart");
+                      }}
+                    >
+                      Pay advance
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.article>
+          ))}
+        </div>
+
+        {filtered.length === 0 && (
+          <div className="container" style={{ marginTop: 18 }}>
+            <p className="lead">No results. Try a different search.</p>
+          </div>
         )}
       </div>
-    </section>
+    </div>
   );
 }
 

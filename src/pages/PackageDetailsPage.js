@@ -1,129 +1,197 @@
-import { useParams } from "react-router-dom";
-import { packages } from "../components/Packages";
+import { useMemo, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { motion } from "framer-motion";
+import { FaCheck, FaShieldHeart, FaArrowRight, FaClock } from "react-icons/fa6";
+
+import { getPackageById, formatINR } from "../data/packages";
 import { useCart } from "../context/CartContext";
-import confetti from "canvas-confetti";
 import "./PackageDetailsPage.css";
+
+function scrollToId(id) {
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
 
 function PackageDetailsPage() {
   const { packageId } = useParams();
+  const pkg = getPackageById(packageId);
+
+  const nav = useNavigate();
   const { addToCart } = useCart();
 
-  const pkg = packages.find((p) => p.id === packageId);
+  const [travellers, setTravellers] = useState(2);
 
-  if (!pkg) {
-    return <p style={{ padding: "100px 10%" }}>Package not found.</p>;
-  }
+  const pricing = useMemo(() => {
+    if (!pkg) return null;
+    const total = pkg.pricePerPerson * travellers;
+    const advance = Math.round((total * (pkg.advancePercent || 20)) / 100);
+    return { total, advance };
+  }, [pkg, travellers]);
 
-  /* 🔹 Smooth scroll helper */
-  const scrollToSection = (id) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-  };
+  const addThisToCart = () => {
+    if (!pkg || !pricing) return;
 
-  /* 🎉 Confetti animation */
-  const fireConfetti = () => {
-    confetti({
-      particleCount: 130,
-      spread: 80,
-      origin: { y: 0.65 },
-      colors: ["#0d6efd", "#22c55e", "#38bdf8"],
+    // Use a travellers-specific id so changing travellers creates a distinct cart item.
+    const itemId = `pkg-${pkg.id}-t${travellers}`;
+
+    addToCart({
+      id: itemId,
+      name: `${pkg.title} • ${travellers} traveller${travellers > 1 ? "s" : ""}`,
+      price: formatINR(pricing.total),
+      duration: `${pkg.duration.nights} Nights`,
+      image: pkg.image,
+      meta: {
+        kind: "package",
+        baseId: pkg.id,
+        travellers,
+        pricePerPerson: pkg.pricePerPerson,
+        advancePercent: pkg.advancePercent,
+        advance: pricing.advance,
+        total: pricing.total,
+      },
     });
+
+    nav("/cart");
   };
+
+  if (!pkg) return <p style={{ padding: "100px 10%" }}>Package not found.</p>;
 
   return (
-    <div className="package-details-page">
+    <div className="pkg-details">
       {/* HERO */}
-      <div
-        className="details-hero"
-        style={{
-          backgroundImage: `linear-gradient(rgba(0,0,0,.55), rgba(0,0,0,.55)), url(${pkg.image})`,
-        }}
-      >
-        <h1>{pkg.name}</h1>
-        <p>{pkg.duration}</p>
+      <div className="pkg-hero" style={{ backgroundImage: `url(${pkg.image})` }}>
+        <div className="pkg-hero-overlay" />
+        <div className="container pkg-hero-inner">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+          >
+            <div className="pkg-hero-badges">
+              <span className="pill"><FaClock /> {pkg.duration.nights}N/{pkg.duration.days}D</span>
+              <span className="pill">{pkg.destination}</span>
+              <span className="pill">{pkg.country}</span>
+            </div>
+            <h1 className="pkg-hero-title">{pkg.title}</h1>
+            <p className="pkg-hero-sub">
+              Curated itinerary, transparent inclusions and secure online advance payment.
+            </p>
+          </motion.div>
+        </div>
       </div>
 
-      {/* STICKY NAV */}
-      <div className="details-nav">
-        <button onClick={() => scrollToSection("hotels")}>Hotels</button>
-        <button onClick={() => scrollToSection("cab")}>Cab Services</button>
-        <button onClick={() => scrollToSection("sightseeing")}>Sightseeing</button>
-        <button onClick={() => scrollToSection("itinerary")}>Itinerary</button>
+      {/* Sticky section nav */}
+      <div className="pkg-nav">
+        <div className="container pkg-nav-inner">
+          <button onClick={() => scrollToId("highlights")}>Highlights</button>
+          <button onClick={() => scrollToId("itinerary")}>Itinerary</button>
+          <button onClick={() => scrollToId("inclusions")}>Inclusions</button>
+          <button onClick={() => scrollToId("policies")}>Policies</button>
+          <button className="pkg-nav-cta" type="button" onClick={addThisToCart}>
+            Pay advance <FaArrowRight />
+          </button>
+        </div>
       </div>
 
-      {/* CTA */}
-      <div className="details-cta">
-        <button
-          className="add-to-cart-btn"
-          onClick={() => {
-            addToCart(pkg);
-            fireConfetti();
-          }}
-        >
-          Reserve This Package
-        </button>
+      <div className="container pkg-layout">
+        {/* Main */}
+        <div className="pkg-main">
+          <section id="highlights" className="pkg-section">
+            <h2 className="h2">Highlights</h2>
+            <div className="grid-2">
+              {pkg.highlights.map((h) => (
+                <div key={h} className="card">
+                  <div className="check"><FaCheck /></div>
+                  <div>{h}</div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section id="itinerary" className="pkg-section">
+            <h2 className="h2">Day-wise itinerary</h2>
+            <div className="timeline">
+              {pkg.itinerary.map((d) => (
+                <div key={d.day} className="timeline-row">
+                  <div className="timeline-day">Day {d.day}</div>
+                  <div className="timeline-card">
+                    <div className="timeline-title">{d.title}</div>
+                    <div className="timeline-desc">{d.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section id="inclusions" className="pkg-section">
+            <div className="grid-2">
+              <div className="box">
+                <h3 className="h3">Inclusions</h3>
+                <ul className="list">
+                  {pkg.inclusions.map((x) => (
+                    <li key={x}><FaCheck /> {x}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="box">
+                <h3 className="h3">Exclusions</h3>
+                <ul className="list muted">
+                  {pkg.exclusions.map((x) => (
+                    <li key={x}><FaCheck /> {x}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          <section id="policies" className="pkg-section">
+            <h2 className="h2">Policies & notes</h2>
+            <div className="box">
+              <ul className="list">
+                {pkg.policies?.map((p) => (
+                  <li key={p}><FaShieldHeart /> {p}</li>
+                ))}
+              </ul>
+            </div>
+          </section>
+        </div>
+
+        {/* Sidebar */}
+        <aside className="pkg-side">
+          <div className="side-card">
+            <div className="side-price">
+              <div>
+                <div className="side-price-main">{formatINR(pkg.pricePerPerson)}</div>
+                <div className="side-price-sub">per person</div>
+              </div>
+              <div className="pill">Advance {pkg.advancePercent}%</div>
+            </div>
+
+            <div className="side-field">
+              <label>Travellers</label>
+              <div className="qty">
+                <button onClick={() => setTravellers((t) => Math.max(1, t - 1))}>−</button>
+                <span>{travellers}</span>
+                <button onClick={() => setTravellers((t) => Math.min(12, t + 1))}>+</button>
+              </div>
+            </div>
+
+            <div className="side-summary">
+              <div className="row"><span>Total</span><strong>{formatINR(pricing.total)}</strong></div>
+              <div className="row"><span>Advance payable</span><strong>{formatINR(pricing.advance)}</strong></div>
+            </div>
+
+            <button className="btn btn-primary" type="button" onClick={addThisToCart}>
+              Pay advance & book
+            </button>
+            <Link className="btn btn-ghost" to="/packages">Back to packages</Link>
+
+            <p className="side-note">
+              You can pay advance online to lock your booking. Remaining amount can be paid later.
+            </p>
+          </div>
+        </aside>
       </div>
-
-      {/* HOTEL */}
-      <section id="hotels" className="details-section">
-        <h2>Hotel Stay</h2>
-        <div className="details-box">
-          <p>Handpicked premium hotels with daily breakfast.</p>
-          <ul>
-            <li>City center or prime locations</li>
-            <li>Verified & sanitized properties</li>
-            <li>24x7 support during stay</li>
-          </ul>
-        </div>
-      </section>
-
-      {/* CAB */}
-      <section id="cab" className="details-section alt">
-        <h2>Cab Services</h2>
-        <div className="details-box">
-          <ul>
-            <li>Airport pickup & drop</li>
-            <li>Private sightseeing transfers</li>
-            <li>Experienced drivers</li>
-          </ul>
-        </div>
-      </section>
-
-      {/* SIGHTSEEING */}
-      <section id="sightseeing" className="details-section">
-        <h2>Sightseeing</h2>
-        <div className="details-box">
-          <ul>
-            <li>Top attractions covered</li>
-            <li>Entry tickets included</li>
-            <li>Guided tours (where applicable)</li>
-          </ul>
-        </div>
-      </section>
-
-      {/* ITINERARY */}
-      <section id="itinerary" className="details-section alt">
-        <h2>Detailed Itinerary</h2>
-
-        <div className="itinerary-box">
-          <h4>Day 1</h4>
-          <p>Arrival, hotel check-in & leisure time.</p>
-        </div>
-
-        <div className="itinerary-box">
-          <h4>Day 2</h4>
-          <p>City sightseeing & local attractions.</p>
-        </div>
-
-        <div className="itinerary-box">
-          <h4>Day 3</h4>
-          <p>Optional activities or shopping.</p>
-        </div>
-
-        <div className="itinerary-box">
-          <h4>Day 4</h4>
-          <p>Checkout & airport transfer.</p>
-        </div>
-      </section>
     </div>
   );
 }

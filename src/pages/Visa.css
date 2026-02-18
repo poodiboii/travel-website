@@ -1,147 +1,55 @@
-.visa-page {
-  padding: 50px 10%;
-  background: #f9fafb;
-  font-family: 'Inter', sans-serif;
-  color: #1f2937;
-}
+.visa{padding: 28px 0 72px}
 
-/* HERO */
-.visa-hero {
-  text-align: center;
-  margin-bottom: 40px;
-}
-.visa-hero h1 {
-  font-size: 2.8rem;
-  margin-bottom: 15px;
-  color: #0f172a;
-}
-.visa-hero p {
-  font-size: 1.2rem;
-  color: #4b5563;
-}
+.visa-hero{background: rgba(255,255,255,.72); border:1px solid rgba(15,23,42,.10); border-radius: 26px; box-shadow: 0 26px 80px rgba(2,6,23,.10); padding: 22px}
+.visa-title{font-size: clamp(1.8rem, 2.8vw, 2.5rem); letter-spacing:-.03em}
+.visa-sub{color: var(--muted); margin-top: 8px; max-width: 70ch}
 
-/* SEARCH */
-.visa-search {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 30px;
-}
-.visa-search input {
-  width: 100%;
-  max-width: 400px;
-  padding: 12px 16px;
-  border-radius: 8px;
-  border: 1px solid #cbd5e1;
-  font-size: 1rem;
-}
+.visa-controls{margin-top: 16px; display:grid; grid-template-columns: 1.4fr .8fr; gap: 12px}
 
-/* COUNTRY CARDS */
-.visa-countries {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 20px;
-  margin-bottom: 30px;
-}
-.visa-country-card {
-  background: white;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
-  text-align: center;
-  text-decoration: none;
-  color: #1f2937;
-  transition: all 0.3s ease;
-}
-.visa-country-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 15px 35px rgba(0,0,0,0.12);
-}
+.control{background:white; border: 1px solid rgba(15,23,42,.12); border-radius: 16px; box-shadow: 0 16px 40px rgba(2,6,23,.08); padding: 12px 12px; transition: box-shadow 180ms ease, border-color 180ms ease}
+.control:focus-within{border-color: rgba(59,130,246,.35); box-shadow: 0 18px 48px rgba(2,6,23,.10), 0 0 0 6px rgba(59,130,246,.16), 0 0 26px rgba(59,130,246,.22)}
+.control input,.control select{width:100%; border:none; outline:none; background:transparent}
 
-/* PROCESS STEPS */
-.visa-process {
-  margin: 60px 0;
-  text-align: center;
-}
-.visa-process h2 {
-  margin-bottom: 30px;
-  font-size: 2rem;
-}
-.process-steps {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 25px;
-  justify-content: center;
-}
-.process-card {
-  background: white;
-  padding: 25px 20px;
-  border-radius: 12px;
-  box-shadow: 0 8px 25px rgba(0,0,0,0.08);
-  width: 250px;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-.process-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 15px 35px rgba(0,0,0,0.12);
-}
-.process-step {
-  font-weight: 700;
-  color: #0d6efd;
-  margin-bottom: 10px;
-}
+.visa-grid{margin-top: 18px; display:grid; grid-template-columns: repeat(3,1fr); gap: 16px}
 
-/* CONTINENT WISE */
-.visa-continents {
-  margin-top: 60px;
-}
-.continent-section {
-  margin-bottom: 40px;
-}
-.continent-section h3 {
-  font-size: 1.5rem;
-  margin-bottom: 15px;
-}
-.continent-countries {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 15px;
-}
-.continent-country-card {
-  background: white;
-  padding: 12px 18px;
-  border-radius: 10px;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-  text-decoration: none;
-  color: #1f2937;
-  transition: all 0.25s ease;
-}
-.continent-country-card:hover {
-  background: #0d6efd;
-  color: white;
-}
+.country-card{background: rgba(255,255,255,.86); border:1px solid rgba(15,23,42,.10); border-radius: 22px; box-shadow: 0 22px 60px rgba(2,6,23,.10); overflow:hidden; transition: transform 180ms ease, box-shadow 180ms ease; padding: 14px}
+.country-card:hover{transform: translateY(-4px); box-shadow: 0 30px 80px rgba(2,6,23,.16)}
+.country-top{display:flex; align-items:center; justify-content:space-between; gap: 12px}
+.country-name{font-weight: 950; letter-spacing:-.02em}
+.country-region{color: var(--muted-2); font-weight: 800; font-size: .9rem}
+.country-price{font-weight: 950}
+.country-price small{display:block; color: var(--muted-2); font-weight: 800}
 
-/* PAGINATION */
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 15px;
-  margin-bottom: 50px;
+.country-actions{display:flex; gap: 10px; margin-top: 12px; flex-wrap:wrap}
+
+.section-nav{position: sticky; top: 74px; z-index: 20; background: rgba(246,248,252,.78); backdrop-filter: blur(14px); border-bottom: 1px solid rgba(15,23,42,.10)}
+.section-nav-inner{display:flex; gap: 10px; align-items:center; padding: 10px 0; flex-wrap:wrap}
+.section-nav-inner button{padding: 10px 12px; border-radius: 999px; border: 1px solid rgba(15,23,42,.12); background: white; box-shadow: 0 12px 30px rgba(2,6,23,.08); font-weight: 800}
+
+.visa-country-hero{border-radius: 26px; padding: 22px; margin-top: 18px; background: rgba(255,255,255,.78); border:1px solid rgba(15,23,42,.10); box-shadow: 0 26px 80px rgba(2,6,23,.10)}
+
+.plans{margin-top: 14px; display:grid; grid-template-columns: repeat(2,1fr); gap: 12px}
+.plan{border-radius: 18px; padding: 14px; background: rgba(255,255,255,.88); border:1px solid rgba(15,23,42,.10); box-shadow: 0 18px 50px rgba(2,6,23,.10)}
+.plan h3{margin:0; font-size: 1.05rem}
+.plan p{margin-top: 6px; color: var(--muted)}
+
+.kv{display:flex; align-items:center; justify-content:space-between; margin-top: 10px; color: var(--muted); font-weight: 800}
+
+.list{list-style:none; padding:0; display:flex; flex-direction:column; gap: 10px}
+.list li{display:flex; gap: 10px; align-items:flex-start; color: #0f172a; font-weight: 700}
+
+.box{background: rgba(255,255,255,.88); border: 1px solid rgba(15,23,42,.10); border-radius: 22px; box-shadow: 0 22px 60px rgba(2,6,23,.10); padding: 16px; margin-top: 12px}
+
+.faq{margin-top: 12px; display:flex; flex-direction:column; gap: 10px}
+.faq details{background:white; border:1px solid rgba(15,23,42,.10); border-radius: 18px; padding: 12px 14px; box-shadow: 0 16px 40px rgba(2,6,23,.08)}
+.faq summary{font-weight: 900; cursor:pointer}
+.faq p{margin-top: 8px; color: var(--muted)}
+
+@media (max-width: 980px){
+  .visa-controls{grid-template-columns: 1fr;}
+  .visa-grid{grid-template-columns: repeat(2,1fr)}
+  .plans{grid-template-columns: 1fr}
 }
-.pagination button {
-  padding: 8px 14px;
-  border-radius: 6px;
-  border: none;
-  background: #0d6efd;
-  color: white;
-  cursor: pointer;
-  transition: all 0.25s ease;
-}
-.pagination button:disabled {
-  background: #94a3b8;
-  cursor: not-allowed;
-}
-.pagination span {
-  font-weight: 500;
-  color: #1f2937;
+@media (max-width: 560px){
+  .visa-grid{grid-template-columns: 1fr}
 }

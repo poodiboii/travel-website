@@ -1,0 +1,13 @@
+.checkout{padding: 28px 0 72px}
+.checkout-grid{display:grid; grid-template-columns: 1.2fr .8fr; gap: 18px; margin-top: 14px}
+.panel{background: rgba(255,255,255,.92); border: 1px solid rgba(15,23,42,.10); border-radius: 26px; box-shadow: 0 26px 80px rgba(2,6,23,.12); padding: 16px}
+.panel h2{margin:0 0 10px; font-size: 1.25rem; letter-spacing:-.02em}
+.form{display:grid; grid-template-columns: 1fr 1fr; gap: 12px}
+.form .full{grid-column: 1 / -1}
+.input{padding: 12px 14px; border-radius: 16px; border: 1px solid rgba(15,23,42,.12); background: white; box-shadow: 0 16px 40px rgba(2,6,23,.08)}
+.label{display:block; font-weight: 900; margin-bottom: 6px}
+.summary{display:flex; flex-direction:column; gap: 10px}
+.summary .row{display:flex; justify-content:space-between; color: var(--muted); font-weight: 800}
+.summary strong{color:#0f172a}
+.note{color: var(--muted); font-size:.92rem; line-height:1.55}
+@media (max-width: 980px){.checkout-grid{grid-template-columns:1fr}.form{grid-template-columns:1fr}}

@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 
 import Header from "./components/Header";
 import Footer from "./components/Footer";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 /* Pages */
 import Home from "./pages/Home";
@@ -25,6 +26,15 @@ import Cab from "./pages/Cab";
 
 /* Cart */
 import Cart from "./pages/Cart";
+
+/* Auth/Admin */
+import Login from "./pages/Login";
+import Admin from "./pages/Admin";
+
+/* Checkout */
+import Checkout from "./pages/Checkout";
+import PaymentSuccess from "./pages/PaymentSuccess";
+import PaymentFailed from "./pages/PaymentFailed";
 
 /* Floating WhatsApp */
 import WhatsAppChat from "./components/WhatsAppChat";
@@ -75,6 +85,22 @@ function App() {
 
           {/* Contact */}
           <Route path="/contact" element={<Contact />} />
+
+          {/* Checkout */}
+          <Route path="/checkout/:kind/:id" element={<Checkout />} />
+          <Route path="/payment-success" element={<PaymentSuccess />} />
+          <Route path="/payment-failed" element={<PaymentFailed />} />
+
+          {/* Auth */}
+          <Route path="/login" element={<Login />} />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute requireAdmin>
+                <Admin />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </main>
 

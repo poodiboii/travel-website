@@ -1,23 +1,30 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import "./Cart.css";
 
+/* 🔒 SINGLE SOURCE OF TRUTH */
+const ADVANCE_AMOUNT = 1000; // ₹1000 flat advance for ALL payments
+
 function Cart() {
   const { cartItems, removeFromCart, clearCart } = useCart();
+  const navigate = useNavigate();
   const [showBreakdown, setShowBreakdown] = useState({});
+
+  const mockPaymentsEnabled = useMemo(() => {
+    const mode = (process.env.REACT_APP_PAYMENT_MODE || "").toLowerCase();
+    if (mode === "live") return false;
+    if (mode === "mock") return true;
+    return process.env.NODE_ENV !== "production";
+  }, []);
 
   const [showDetails, setShowDetails] = useState(false);
   const [travelDate, setTravelDate] = useState("");
   const [travellerCount, setTravellerCount] = useState(1);
   const [travellers, setTravellers] = useState([{ name: "", age: "" }]);
 
-  const reservationRate = 0.2;
-
-  const totalAdvance = cartItems.reduce((acc, item) => {
-    const numericPrice = Number(item.price.replace(/[^0-9]/g, ""));
-    return acc + numericPrice * reservationRate;
-  }, 0);
+  /* ✅ FIXED ADVANCE (NOT DEPENDENT ON CART VALUE) */
+  const totalAdvance = cartItems.length > 0 ? ADVANCE_AMOUNT : 0;
 
   const toggleBreakdown = (id) => {
     setShowBreakdown((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -47,29 +54,46 @@ function Cart() {
 
   const handleCheckout = () => setShowDetails(true);
 
-  /* ✅ CC AVENUE PAYMENT */
+  /* 🧪 MOCK PAYMENT */
+  const handleMockPayment = (status) => {
+    if (!isFormValid) return;
+
+    const orderId = `MOCK_${Date.now()}`;
+    setShowDetails(false);
+
+    if (status === "success") clearCart();
+
+    const path = status === "success" ? "/payment-success" : "/payment-failed";
+    navigate(
+      `${path}?mock=1&order_id=${orderId}&amount=${ADVANCE_AMOUNT}`
+    );
+  };
+
+  /* 💳 CC AVENUE PAYMENT */
   const handleFinalPayment = async () => {
     if (!isFormValid) return;
 
+    if (mockPaymentsEnabled) {
+      handleMockPayment("success");
+      return;
+    }
+
     const payload = {
       order_id: `ORDER_${Date.now()}`,
-      amount: totalAdvance.toFixed(2),
+      amount: ADVANCE_AMOUNT.toFixed(2), // 🔥 ALWAYS 1000
       billing_name: travellers[0]?.name || "Guest",
-      billing_email: "test@example.com",
+      billing_email: "guest@example.com",
       billing_tel: "9999999999",
     };
 
-    console.log("🟡 CC Avenue Payload:", payload);
-
     try {
-      const res = await fetch("http://localhost:5000/api/initiate-payment", {
+      const res = await fetch("/api/initiate-payment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
       const data = await res.json();
-      console.log("🟢 Backend Response:", data);
 
       if (!data.encRequest || !data.accessCode) {
         alert("Payment initialization failed");
@@ -78,9 +102,8 @@ function Cart() {
 
       const form = document.createElement("form");
       form.method = "POST";
-
-      /* ✅ ONLY CHANGE IS HERE */
       form.action =
+        data.gatewayUrl ||
         "https://secure.ccavenue.com/transaction/transaction.do?command=initiateTransaction";
 
       const encInput = document.createElement("input");
@@ -96,15 +119,14 @@ function Cart() {
       form.appendChild(encInput);
       form.appendChild(accessInput);
       document.body.appendChild(form);
-
-      console.log("🚀 Redirecting to CC Avenue");
       form.submit();
     } catch (err) {
-      console.error("❌ Payment Error:", err);
+      console.error("Payment Error:", err);
       alert("Something went wrong. Please try again.");
     }
   };
 
+  /* EMPTY CART */
   if (cartItems.length === 0) {
     return (
       <div className="cart-page">
@@ -126,15 +148,13 @@ function Cart() {
       <div className="cart-table">
         <div className="cart-header">
           <span>Package</span>
-          <span>Reservation Amount</span>
+          <span>Advance</span>
           <span>Details</span>
           <span>Remove</span>
         </div>
 
         {cartItems.map((item) => {
           const numericPrice = Number(item.price.replace(/[^0-9]/g, ""));
-          const advancePrice = numericPrice * reservationRate;
-          const remainingBalance = numericPrice - advancePrice;
 
           return (
             <div key={item.id} className="cart-row">
@@ -143,7 +163,7 @@ function Cart() {
                 <span>{item.name}</span>
               </div>
 
-              <span>₹{advancePrice.toLocaleString()}</span>
+              <span>₹{ADVANCE_AMOUNT}</span>
 
               <button
                 className="btn-breakdown"
@@ -162,8 +182,8 @@ function Cart() {
               {showBreakdown[item.id] && (
                 <div className="payment-breakdown">
                   <p><strong>Full Price:</strong> ₹{numericPrice}</p>
-                  <p><strong>Advance:</strong> ₹{advancePrice}</p>
-                  <p><strong>Remaining:</strong> ₹{remainingBalance}</p>
+                  <p><strong>Advance Payable Now:</strong> ₹1000</p>
+                  <p><strong>Balance:</strong> ₹{numericPrice - 1000}</p>
                 </div>
               )}
             </div>
@@ -172,9 +192,12 @@ function Cart() {
       </div>
 
       <div className="cart-summary">
-        <p>Total Reservation: ₹{totalAdvance.toLocaleString()}</p>
+        <p><strong>Advance Payable Now:</strong> ₹1000</p>
+        <p style={{ fontSize: "0.9rem", opacity: 0.8 }}>
+          ₹1000 is an adjustable advance. Balance payable later.
+        </p>
         <button className="btn-checkout" onClick={handleCheckout}>
-          Pay Reservation
+          Pay ₹1000 Advance
         </button>
         <button className="btn-clear" onClick={clearCart}>
           Clear Cart
@@ -231,7 +254,9 @@ function Cart() {
               onClick={handleFinalPayment}
               disabled={!isFormValid}
             >
-              Confirm & Pay Reservation
+              {mockPaymentsEnabled
+                ? "Confirm (Mock Payment)"
+                : "Confirm & Pay ₹1000"}
             </button>
           </div>
         </div>

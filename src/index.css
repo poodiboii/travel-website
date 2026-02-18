@@ -1,111 +1,137 @@
-/* ===== RESET ===== */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+/* --------------------------------------------------
+   Global Styles / Design Tokens
+   -------------------------------------------------- */
 
-/* ===== ROOT VARIABLES ===== */
+/* CSS Reset (minimal, modern) */
+*, *::before, *::after { box-sizing: border-box; }
+* { margin: 0; }
+html, body { height: 100%; }
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+img, picture, video, canvas, svg { display: block; max-width: 100%; }
+input, button, textarea, select { font: inherit; }
+button { cursor: pointer; }
+
 :root {
-  --primary: #0a6cff;
-  --secondary: #ff9800;
-  --dark: #1e293b;
-  --light: #f8fafc;
-  --gray: #64748b;
+  /* Brand */
+  --brand-900: #0b1220;
+  --brand-800: #0f172a;
+  --brand-700: #111c33;
+  --brand-600: #16264a;
+
+  --primary-700: #1d4ed8;
+  --primary-600: #2563eb;
+  --primary-500: #3b82f6;
+  --accent-600: #f59e0b;
+  --accent-500: #fbbf24;
+
+  /* Neutrals */
+  --bg: #f6f8fc;
+  --card: #ffffff;
+  --text: #0f172a;
+  --muted: #475569;
+  --muted-2: #64748b;
+  --border: rgba(15, 23, 42, 0.10);
+
+  /* Effects */
+  --shadow-sm: 0 6px 18px rgba(2, 6, 23, 0.08);
+  --shadow-md: 0 14px 40px rgba(2, 6, 23, 0.12);
+  --ring: 0 0 0 4px rgba(59, 130, 246, 0.18);
+
+  /* Radius + spacing */
+  --r-sm: 12px;
+  --r-md: 18px;
+  --r-lg: 26px;
+
+  --container: 1200px;
 }
 
-/* ===== GLOBAL ===== */
 body {
-  font-family: "Poppins", sans-serif;
-  background-color: var(--light);
-  color: var(--dark);
-  line-height: 1.6;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
+    Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  color: var(--text);
+  background:
+    radial-gradient(1200px 600px at 20% -10%, rgba(59,130,246,0.20), transparent 60%),
+    radial-gradient(900px 480px at 80% 0%, rgba(245,158,11,0.18), transparent 55%),
+    var(--bg);
+  line-height: 1.55;
 }
 
-section {
-  padding: 80px 8%;
+a { color: inherit; text-decoration: none; }
+
+/* Layout helpers */
+.container {
+  width: min(var(--container), calc(100% - 32px));
+  margin-inline: auto;
+}
+.section {
+  padding: clamp(56px, 6vw, 84px) 0;
 }
 
-h1, h2, h3 {
-  font-weight: 600;
+/* Typography */
+.h1 {
+  font-size: clamp(2.0rem, 3.5vw, 3.1rem);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+.h2 {
+  font-size: clamp(1.5rem, 2.6vw, 2.2rem);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+.lead {
+  color: var(--muted);
+  font-size: 1.05rem;
 }
 
-h2 {
-  font-size: 2.2rem;
-  margin-bottom: 20px;
-  text-align: center;
-  color: var(--primary);
-}
-
-p {
-  color: var(--gray);
-  font-size: 1rem;
-}
-
-/* ===== BUTTON ===== */
+/* Buttons */
 .btn {
-  background: var(--secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-weight: 600;
+  transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease,
+    border-color 160ms ease, color 160ms ease;
+}
+
+.btn:active { transform: translateY(1px); }
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary-600), #60a5fa);
   color: white;
-  padding: 12px 28px;
-  border-radius: 30px;
-  font-weight: 500;
-  text-decoration: none;
-  display: inline-block;
-  transition: all 0.3s ease;
+  box-shadow: 0 10px 26px rgba(37, 99, 235, 0.25);
+}
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 16px 34px rgba(37, 99, 235, 0.30); }
+
+.btn-ghost {
+  background: rgba(255, 255, 255, 0.70);
+  border-color: var(--border);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+.btn-ghost:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+
+/* Focus states */
+:where(a, button, input, textarea, select):focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+  border-radius: 10px;
 }
 
-.btn:hover {
-  background: #e68900;
-  transform: translateY(-2px);
-}
-@media (max-width: 768px) {
-  .header {
-    flex-direction: column;
-  }
-
-  .header nav {
-    margin-top: 10px;
-  }
-
-  .hero h2 {
-    font-size: 2.2rem;
-  }
-
-  .contact {
-    grid-template-columns: 1fr;
-  }
-}
-
-html, body, #root {
-  height: 100%;
-}
-
-body {
-  margin: 0;
-}
-
+/* App shell */
 .app-container {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
-/* Make the whole app 100% height */
-html, body, #root {
-  height: 100%;
-  margin: 0;
-}
-
-/* Flex container for app */
-.app-container {
-  min-height: 100vh; /* full viewport height */
-  display: flex;
-  flex-direction: column;
-}
-
-/* Main content grows to take space */
 .app-main {
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
 }
