@@ -98,8 +98,12 @@ router.get("/admin/bookings", async (req, res) => {
     const bookings = await Booking.find().sort({ createdAt: -1 });
     res.json(bookings);
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch bookings" });
-  }
+  console.error("🔥 Booking fetch error:", err);
+  res.status(500).json({ 
+    error: "Failed to fetch bookings",
+    details: err.message 
+  });
+}
 });
 
 module.exports = router;
