@@ -104,3 +104,14 @@ router.post("/initiate-payment", (req, res) => {
 });
 
 module.exports = router;
+const Booking = require("./models/Booking");
+
+/* VIEW ALL BOOKINGS */
+router.get("/admin/bookings", async (req, res) => {
+  try {
+    const bookings = await Booking.find().sort({ createdAt: -1 });
+    res.json(bookings);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch bookings" });
+  }
+});
