@@ -12,11 +12,11 @@ function requireEnv(name) {
 router.post("/login", (req, res) => {
   const { email, password } = req.body || {};
 
-  const adminEmail = requireEnv("ADMIN_EMAIL");
-  const adminPassword = requireEnv("ADMIN_PASSWORD");
+  const adminEmail = requireEnv("pooravbatra54@gmail.com");
+  const adminPassword = requireEnv("pooravbatra");
   const jwtSecret = requireEnv("JWT_SECRET");
 
-  if (email !== adminEmail || password !== adminPassword) {
+  if (email !== pooravbatra54@gmail.com || password !== adminPassword) {
     return res.status(401).json({ ok: false, error: "Invalid credentials" });
   }
 
