@@ -29,7 +29,7 @@ import Cart from "./pages/Cart";
 
 /* Auth/Admin */
 import Login from "./pages/Login";
-import Admin from "./pages/Admin";
+import AdminBookings from "./pages/AdminBookings";
 
 /* Checkout */
 import Checkout from "./pages/Checkout";
@@ -93,11 +93,13 @@ function App() {
 
           {/* Auth */}
           <Route path="/login" element={<Login />} />
+
+          {/* ✅ Admin Dashboard (Protected) */}
           <Route
             path="/admin"
             element={
               <ProtectedRoute requireAdmin>
-                <Admin />
+                <AdminBookings />
               </ProtectedRoute>
             }
           />

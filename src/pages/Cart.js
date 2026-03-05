@@ -1,32 +1,24 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import "./Cart.css";
 
-/* 🔒 SINGLE SOURCE OF TRUTH */
-const ADVANCE_AMOUNT = 1000; // ₹1000 flat advance for ALL payments
+/* ₹1000 ADVANCE */
+const ADVANCE_AMOUNT = 1000;
 
 function Cart() {
   const { cartItems, removeFromCart, clearCart } = useCart();
   const navigate = useNavigate();
+
+  const API_URL = process.env.REACT_APP_API_URL;
+
   const [showBreakdown, setShowBreakdown] = useState({});
-
-  /* 🔁 Payment Mode */
-  const mockPaymentsEnabled = useMemo(() => {
-    const mode = (process.env.REACT_APP_PAYMENT_MODE || "").toLowerCase();
-    if (mode === "live") return false;
-    if (mode === "mock") return true;
-    return process.env.NODE_ENV !== "production";
-  }, []);
-
-  const API_URL = process.env.REACT_APP_API_URL || "";
-
   const [showDetails, setShowDetails] = useState(false);
+
   const [travelDate, setTravelDate] = useState("");
   const [travellerCount, setTravellerCount] = useState(1);
   const [travellers, setTravellers] = useState([{ name: "", age: "" }]);
 
-  /* ✅ Fixed ₹1000 advance */
   const totalAdvance = cartItems.length > 0 ? ADVANCE_AMOUNT : 0;
 
   const toggleBreakdown = (id) => {
@@ -57,27 +49,9 @@ function Cart() {
 
   const handleCheckout = () => setShowDetails(true);
 
-  /* 🧪 MOCK PAYMENT */
-  const handleMockPayment = (status) => {
-    if (!isFormValid) return;
-
-    const orderId = `MOCK_${Date.now()}`;
-    setShowDetails(false);
-
-    if (status === "success") clearCart();
-
-    const path = status === "success" ? "/payment-success" : "/payment-failed";
-    navigate(`${path}?mock=1&order_id=${orderId}&amount=${ADVANCE_AMOUNT}`);
-  };
-
-  /* 💳 LIVE PAYMENT */
+  /* 💳 LIVE CCAVENUE PAYMENT */
   const handleFinalPayment = async () => {
     if (!isFormValid) return;
-
-    if (mockPaymentsEnabled) {
-      handleMockPayment("success");
-      return;
-    }
 
     const payload = {
       order_id: `ORDER_${Date.now()}`,
@@ -88,21 +62,28 @@ function Cart() {
     };
 
     try {
+      console.log("Sending payment request:", payload);
+
       const res = await fetch(`${API_URL}/api/initiate-payment`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(payload),
       });
 
       const data = await res.json();
 
+      console.log("Payment API response:", data);
+
       if (!data.encRequest || !data.accessCode) {
-        alert("Payment initialization failed");
+        alert("Payment initialization failed.");
         return;
       }
 
       const form = document.createElement("form");
       form.method = "POST";
+
       form.action =
         data.gatewayUrl ||
         "https://secure.ccavenue.com/transaction/transaction.do?command=initiateTransaction";
@@ -119,11 +100,16 @@ function Cart() {
 
       form.appendChild(encInput);
       form.appendChild(accessInput);
+
       document.body.appendChild(form);
+
+      console.log("Redirecting to payment gateway...");
+
       form.submit();
+
     } catch (err) {
       console.error("Payment Error:", err);
-      alert("Something went wrong. Please try again.");
+      alert("Payment service unavailable. Please try again.");
     }
   };
 
@@ -188,7 +174,7 @@ function Cart() {
               {showBreakdown[item.id] && (
                 <div className="payment-breakdown">
                   <p><strong>Full Price:</strong> ₹{numericPrice}</p>
-                  <p><strong>Advance Payable Now:</strong> ₹{ADVANCE_AMOUNT}</p>
+                  <p><strong>Advance Payable Now:</strong> ₹1000</p>
                   <p><strong>Balance:</strong> ₹{balance}</p>
                 </div>
               )}
@@ -198,13 +184,15 @@ function Cart() {
       </div>
 
       <div className="cart-summary">
-        <p><strong>Advance Payable Now:</strong> ₹{ADVANCE_AMOUNT}</p>
+        <p><strong>Advance Payable Now:</strong> ₹1000</p>
         <p style={{ fontSize: "0.9rem", opacity: 0.8 }}>
           ₹1000 is an adjustable advance. Balance payable later.
         </p>
+
         <button className="btn-checkout" onClick={handleCheckout}>
           Pay ₹1000 Advance
         </button>
+
         <button className="btn-clear" onClick={clearCart}>
           Clear Cart
         </button>
@@ -213,7 +201,11 @@ function Cart() {
       {showDetails && (
         <div className="modal-overlay">
           <div className="modal-card">
-            <button className="close-btn" onClick={() => setShowDetails(false)}>
+
+            <button
+              className="close-btn"
+              onClick={() => setShowDetails(false)}
+            >
               ✕
             </button>
 
@@ -260,10 +252,9 @@ function Cart() {
               onClick={handleFinalPayment}
               disabled={!isFormValid}
             >
-              {mockPaymentsEnabled
-                ? "Confirm (Mock Payment)"
-                : "Confirm & Pay ₹1000"}
+              Confirm & Pay ₹1000
             </button>
+
           </div>
         </div>
       )}

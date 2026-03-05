@@ -1,0 +1,53 @@
+.admin-page {
+  padding: 40px;
+  min-height: 100vh;
+  background: #0f172a;
+  color: white;
+}
+
+.admin-page h1 {
+  margin-bottom: 30px;
+  font-size: 28px;
+}
+
+.admin-table {
+  background: #1e293b;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.admin-header,
+.admin-row {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr 1fr 1fr 1fr;
+  padding: 15px 20px;
+  align-items: center;
+}
+
+.admin-header {
+  background: #334155;
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+
+.admin-row {
+  border-top: 1px solid #334155;
+  transition: 0.2s ease;
+}
+
+.admin-row:hover {
+  background: #334155;
+}
+
+.admin-empty {
+  padding: 20px;
+  text-align: center;
+  color: #94a3b8;
+}
+
+.admin-loading {
+  padding: 50px;
+  text-align: center;
+}
