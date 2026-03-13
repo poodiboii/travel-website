@@ -4,7 +4,6 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const { decrypt } = require("./ccavenue");
-const Booking = require("./models/Booking");
 
 // SQLite connection
 const db = require("./db");
@@ -45,7 +44,10 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Health check
+/* ================================
+   HEALTH CHECK
+================================ */
+
 app.get("/", (req, res) => {
   res.send("Backend is running 🚀");
 });
@@ -58,14 +60,12 @@ app.use("/api", paymentRoutes);
 app.use("/api/auth", authRoutes);
 
 /* ================================
-   BOOKING API ROUTE (NEW)
+   CREATE BOOKING
 ================================ */
 
 app.post("/api/book", (req, res) => {
 
   try {
-
-    console.log("Booking request received:", req.body);
 
     const { name, age, phone, people_count, travel_date } = req.body;
 
@@ -114,24 +114,45 @@ app.post("/api/book", (req, res) => {
 });
 
 /* ================================
-   CCAVENUE PAYMENT RESPONSE HANDLER
+   VIEW BOOKINGS (NEW)
+================================ */
+
+app.get("/api/bookings", (req, res) => {
+
+  try {
+
+    const bookings = db.prepare(`
+      SELECT * FROM bookings
+      ORDER BY created_at DESC
+    `).all();
+
+    res.json(bookings);
+
+  } catch (error) {
+
+    console.error("Fetch bookings error:", error);
+
+    res.status(500).json({
+      error: "Failed to fetch bookings"
+    });
+
+  }
+
+});
+
+/* ================================
+   CCAVENUE PAYMENT RESPONSE
 ================================ */
 
 app.post("/payment-response", async (req, res) => {
 
   const frontend = process.env.FRONTEND_BASE_URL || "http://localhost:3000";
 
-  if (!frontend) {
-    console.error("FRONTEND_BASE_URL is not set");
-    return res.status(500).send("Server configuration error");
-  }
-
   try {
 
     const encryptedResponse = req.body.encResp;
 
     if (!encryptedResponse) {
-      console.warn("No encResp received");
       return res.redirect(`${frontend}/payment-failed?reason=no_response`);
     }
 
@@ -142,21 +163,15 @@ app.post("/payment-response", async (req, res) => {
     const amount = params.get("amount");
     const status = params.get("order_status");
 
-    if (!orderId || !amount || !status) {
-      console.warn("Missing required parameters");
-      return res.redirect(`${frontend}/payment-failed?reason=invalid_response`);
-    }
-
-    console.log(`Payment callback → Order: ${orderId} | Status: ${status}`);
+    console.log(`Payment callback → ${orderId} | ${status}`);
 
     if (status === "Success") {
 
       db.prepare(`
-        INSERT INTO bookings (order_id, amount, status)
-        VALUES (?, ?, ?)
-      `).run(orderId, Number(amount), "Success");
-
-      console.log(`Booking saved → Order ID: ${orderId}`);
+        UPDATE bookings
+        SET status = ?, amount = ?
+        WHERE order_id = ?
+      `).run("Success", Number(amount), orderId);
 
       return res.redirect(`${frontend}/payment-success?order_id=${orderId}`);
     }
@@ -170,46 +185,26 @@ app.post("/payment-response", async (req, res) => {
     return res.redirect(`${frontend}/payment-failed?reason=server_error`);
 
   }
+
 });
 
 /* ================================
-   TEST ENDPOINT
+   TEST PAYMENT
 ================================ */
 
-app.post("/test-payment-callback", async (req, res) => {
+app.get("/test-booking", (req, res) => {
 
-  const frontend = process.env.FRONTEND_BASE_URL || "http://localhost:3000";
-  const fakeOrderId = `TEST_${Date.now()}`;
+  const fakeId = "TEST_" + Date.now();
 
-  try {
+  db.prepare(`
+    INSERT INTO bookings (order_id, amount, status)
+    VALUES (?, ?, ?)
+  `).run(fakeId, 1499, "Success");
 
-    db.prepare(`
-      INSERT INTO bookings (order_id, amount, status)
-      VALUES (?, ?, ?)
-    `).run(fakeOrderId, 1499.00, "Success");
-
-    console.log(`Fake booking saved → ${fakeOrderId}`);
-
-    return res.redirect(`${frontend}/payment-success?order_id=${fakeOrderId}`);
-
-  } catch (err) {
-
-    console.error("Test error:", err);
-
-    return res.redirect(`${frontend}/payment-failed?reason=test_server_error`);
-
-  }
-});
-
-/* ================================
-   PAYMENT CANCEL
-================================ */
-
-app.post("/payment-cancel", (req, res) => {
-
-  const frontend = process.env.FRONTEND_BASE_URL || "http://localhost:3000";
-
-  res.redirect(`${frontend}/payment-failed?reason=cancelled`);
+  res.json({
+    message: "Test booking inserted",
+    order_id: fakeId
+  });
 
 });
 
@@ -219,18 +214,6 @@ app.post("/payment-cancel", (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-const server = app.listen(PORT, () => {
+app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
-});
-
-/* ================================
-   GRACEFUL SHUTDOWN
-================================ */
-
-process.on("SIGTERM", () => {
-  server.close(() => process.exit(0));
-});
-
-process.on("SIGINT", () => {
-  process.exit(0);
 });
