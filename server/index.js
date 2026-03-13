@@ -4,24 +4,48 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const { decrypt } = require("./ccavenue");
+const Booking = require("./models/Booking");
+
+// SQLite connection
+const db = require("./db");
 
 const app = express();
 
-// Import routes
+/* ================================
+   INITIALIZE SQLITE TABLE
+================================ */
+
+db.prepare(`
+CREATE TABLE IF NOT EXISTS bookings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  order_id TEXT,
+  amount REAL,
+  status TEXT,
+  name TEXT,
+  age INTEGER,
+  phone TEXT,
+  people_count INTEGER,
+  travel_date TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)
+`).run();
+
+/* ================================
+   IMPORT ROUTES
+================================ */
+
 const paymentRoutes = require("./payment");
 const authRoutes = require("./auth");
-
-// Supabase client
-const supabase = require("./supabase");
 
 /* ================================
    MIDDLEWARE
 ================================ */
+
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Basic health check
+// Health check
 app.get("/", (req, res) => {
   res.send("Backend is running 🚀");
 });
@@ -29,154 +53,184 @@ app.get("/", (req, res) => {
 /* ================================
    ROUTES
 ================================ */
+
 app.use("/api", paymentRoutes);
 app.use("/api/auth", authRoutes);
 
 /* ================================
-   CCAVENUE PAYMENT RESPONSE HANDLER (real one)
+   BOOKING API ROUTE (NEW)
 ================================ */
+
+app.post("/api/book", (req, res) => {
+
+  try {
+
+    console.log("Booking request received:", req.body);
+
+    const { name, age, phone, people_count, travel_date } = req.body;
+
+    const orderId = "TEMP_" + Date.now();
+
+    db.prepare(`
+      INSERT INTO bookings (
+        order_id,
+        amount,
+        status,
+        name,
+        age,
+        phone,
+        people_count,
+        travel_date
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      orderId,
+      0,
+      "Pending",
+      name,
+      age,
+      phone,
+      people_count,
+      travel_date
+    );
+
+    res.json({
+      success: true,
+      message: "Booking stored successfully",
+      order_id: orderId
+    });
+
+  } catch (error) {
+
+    console.error("Booking error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to store booking"
+    });
+
+  }
+
+});
+
+/* ================================
+   CCAVENUE PAYMENT RESPONSE HANDLER
+================================ */
+
 app.post("/payment-response", async (req, res) => {
+
   const frontend = process.env.FRONTEND_BASE_URL || "http://localhost:3000";
 
   if (!frontend) {
-    console.error("FRONTEND_BASE_URL is not set in environment variables");
+    console.error("FRONTEND_BASE_URL is not set");
     return res.status(500).send("Server configuration error");
   }
 
   try {
+
     const encryptedResponse = req.body.encResp;
 
     if (!encryptedResponse) {
-      console.warn("No encResp received in payment response");
+      console.warn("No encResp received");
       return res.redirect(`${frontend}/payment-failed?reason=no_response`);
     }
 
     const decryptedData = decrypt(encryptedResponse);
     const params = new URLSearchParams(decryptedData);
 
-    const orderId   = params.get("order_id");
-    const amount    = params.get("amount");
-    const status    = params.get("order_status");
+    const orderId = params.get("order_id");
+    const amount = params.get("amount");
+    const status = params.get("order_status");
 
     if (!orderId || !amount || !status) {
-      console.warn("Missing required CCAvenue parameters", { orderId, amount, status });
+      console.warn("Missing required parameters");
       return res.redirect(`${frontend}/payment-failed?reason=invalid_response`);
     }
 
-    console.log(`Payment callback received → Order: ${orderId} | Status: ${status} | Amount: ${amount}`);
+    console.log(`Payment callback → Order: ${orderId} | Status: ${status}`);
 
     if (status === "Success") {
-      console.log("About to insert booking into Supabase...");
 
-      const { data, error } = await supabase
-        .from("bookings")
-        .insert({
-          order_id: orderId,
-          amount: Number(amount),
-          status: "Success"
-        });
+      db.prepare(`
+        INSERT INTO bookings (order_id, amount, status)
+        VALUES (?, ?, ?)
+      `).run(orderId, Number(amount), "Success");
 
-      console.log("Supabase insert result:", { data, error });
+      console.log(`Booking saved → Order ID: ${orderId}`);
 
-      if (error) {
-        console.error("Supabase insert failed:", {
-          message: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint
-        });
-        return res.redirect(`${frontend}/payment-failed?reason=database_error`);
-      }
-
-      console.log(`✅ Booking saved successfully → Order ID: ${orderId}`);
       return res.redirect(`${frontend}/payment-success?order_id=${orderId}`);
     }
 
-    console.log(`Payment unsuccessful → Status: ${status}`);
     return res.redirect(`${frontend}/payment-failed?status=${status}`);
 
   } catch (err) {
-    console.error("Error processing payment response:", err.stack || err);
+
+    console.error("Payment error:", err);
+
     return res.redirect(`${frontend}/payment-failed?reason=server_error`);
+
   }
 });
 
 /* ================================
-   TEST ENDPOINT - Simulate CCAvenue callback
+   TEST ENDPOINT
 ================================ */
+
 app.post("/test-payment-callback", async (req, res) => {
+
   const frontend = process.env.FRONTEND_BASE_URL || "http://localhost:3000";
-  const { simulateStatus = "Success" } = req.body;
-
-  console.log(`[TEST CALLBACK] Simulating payment with status: ${simulateStatus}`);
-
   const fakeOrderId = `TEST_${Date.now()}`;
-  const fakeParams = new URLSearchParams({
-    order_id: fakeOrderId,
-    amount: "1499.00",
-    order_status: simulateStatus
-  });
 
   try {
-    if (simulateStatus === "Success") {
-      console.log("[TEST] About to insert fake booking into Supabase...");
 
-      const { data, error } = await supabase
-        .from("bookings")
-        .insert({
-          order_id: fakeOrderId,
-          amount: Number(fakeParams.get("amount")),
-          status: "Success"
-        });
+    db.prepare(`
+      INSERT INTO bookings (order_id, amount, status)
+      VALUES (?, ?, ?)
+    `).run(fakeOrderId, 1499.00, "Success");
 
-      console.log("[TEST] Supabase insert result:", { data, error });
+    console.log(`Fake booking saved → ${fakeOrderId}`);
 
-      if (error) {
-        console.error("[TEST] Supabase insert failed:", {
-          message: error.message,
-          code: error.code,
-          details: error.details
-        });
-        return res.redirect(`${frontend}/payment-failed?reason=test_db_error`);
-      }
+    return res.redirect(`${frontend}/payment-success?order_id=${fakeOrderId}`);
 
-      console.log(`[TEST] ✅ Fake booking saved → Order ID: ${fakeOrderId}`);
-      return res.redirect(`${frontend}/payment-success?order_id=${fakeOrderId}`);
-    } else {
-      console.log("[TEST] Simulating failed payment");
-      return res.redirect(`${frontend}/payment-failed?reason=test_failed`);
-    }
   } catch (err) {
-    console.error("[TEST] Server error:", err.stack || err);
+
+    console.error("Test error:", err);
+
     return res.redirect(`${frontend}/payment-failed?reason=test_server_error`);
+
   }
 });
 
-// Optional: payment cancel route
+/* ================================
+   PAYMENT CANCEL
+================================ */
+
 app.post("/payment-cancel", (req, res) => {
+
   const frontend = process.env.FRONTEND_BASE_URL || "http://localhost:3000";
+
   res.redirect(`${frontend}/payment-failed?reason=cancelled`);
+
 });
 
 /* ================================
    START SERVER
 ================================ */
+
 const PORT = process.env.PORT || 5000;
 
 const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
 
-// Graceful shutdown
+/* ================================
+   GRACEFUL SHUTDOWN
+================================ */
+
 process.on("SIGTERM", () => {
-  console.log("SIGTERM received. Shutting down gracefully...");
-  server.close(() => {
-    console.log("HTTP server closed.");
-    process.exit(0);
-  });
+  server.close(() => process.exit(0));
 });
 
 process.on("SIGINT", () => {
-  console.log("SIGINT received. Shutting down...");
   process.exit(0);
 });

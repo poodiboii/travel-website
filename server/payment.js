@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { encrypt } = require("./ccavenue");
-const Booking = require("./models/Booking"); // ✅ moved to top
+const supabase = require("./supabase");
 
 function ccavenueConfig() {
   const env = (process.env.CCAVENUE_ENV || "prod").toLowerCase();
@@ -95,15 +95,24 @@ router.post("/initiate-payment", (req, res) => {
 =============================== */
 router.get("/admin/bookings", async (req, res) => {
   try {
-    const bookings = await Booking.find().sort({ createdAt: -1 });
-    res.json(bookings);
+    const { data: bookings, error } = await Booking.fetchBookings({ order: "desc" });
+
+    if (error) {
+      console.error("🔥 Supabase fetch error:", error);
+      return res.status(500).json({
+        error: "Failed to fetch bookings",
+        details: error.message,
+      });
+    }
+
+    res.json(bookings || []);
   } catch (err) {
-  console.error("🔥 Booking fetch error:", err);
-  res.status(500).json({ 
-    error: "Failed to fetch bookings",
-    details: err.message 
-  });
-}
+    console.error("🔥 Booking fetch error:", err);
+    res.status(500).json({
+      error: "Failed to fetch bookings",
+      details: err.message,
+    });
+  }
 });
 
 module.exports = router;
