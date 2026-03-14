@@ -3,7 +3,12 @@ const router = express.Router();
 const { encrypt } = require("./ccavenue");
 const supabase = require("./supabase");
 
+/* ===============================
+   CCAVENUE CONFIG
+=============================== */
+
 function ccavenueConfig() {
+
   const env = (process.env.CCAVENUE_ENV || "prod").toLowerCase();
 
   const pick = (name) => {
@@ -13,54 +18,71 @@ function ccavenueConfig() {
   };
 
   const cfg = {
+
     env,
+
     merchantId:
       (env === "test" && pick("CCAVENUE_MERCHANT_ID_TEST")) ||
       pick("CCAVENUE_MERCHANT_ID"),
+
     accessCode:
       (env === "test" && pick("CCAVENUE_ACCESS_CODE_TEST")) ||
       pick("CCAVENUE_ACCESS_CODE"),
+
     workingKey:
       (env === "test" && pick("CCAVENUE_WORKING_KEY_TEST")) ||
       pick("CCAVENUE_WORKING_KEY"),
+
     gatewayUrl:
       env === "test"
         ? "https://test.ccavenue.com/transaction/transaction.do?command=initiateTransaction"
         : "https://secure.ccavenue.com/transaction/transaction.do?command=initiateTransaction",
+
     redirectUrl:
       pick("CCAVENUE_REDIRECT_URL") ||
       "http://localhost:5000/payment-response",
+
     cancelUrl:
       pick("CCAVENUE_CANCEL_URL") ||
       "http://localhost:5000/payment-cancel",
   };
 
   if (!cfg.merchantId || !cfg.accessCode || !cfg.workingKey) {
+
     throw new Error(
       "Missing CC Avenue config. Set CCAVENUE_MERCHANT_ID/ACCESS_CODE/WORKING_KEY."
     );
+
   }
 
   process.env.CCAVENUE_WORKING_KEY = cfg.workingKey;
 
   return cfg;
+
 }
 
 /* ===============================
    POST: /api/initiate-payment
 =============================== */
+
 router.post("/initiate-payment", (req, res) => {
+
   try {
+
     const {
       order_id,
       amount,
       billing_name,
       billing_email,
-      billing_tel,
+      billing_tel
     } = req.body;
 
     if (!order_id || !amount) {
-      return res.status(400).json({ error: "Missing required fields" });
+
+      return res.status(400).json({
+        error: "Missing required fields"
+      });
+
     }
 
     const cfg = ccavenueConfig();
@@ -79,40 +101,63 @@ router.post("/initiate-payment", (req, res) => {
     const encryptedData = encrypt(merchantData);
 
     return res.status(200).json({
+
       encRequest: encryptedData,
       accessCode: cfg.accessCode,
       gatewayUrl: cfg.gatewayUrl,
-      env: cfg.env,
+      env: cfg.env
+
     });
+
   } catch (error) {
+
     console.error("❌ Payment initiation error:", error);
-    return res.status(500).json({ error: "Payment initiation failed" });
+
+    return res.status(500).json({
+      error: "Payment initiation failed"
+    });
+
   }
+
 });
 
 /* ===============================
    ADMIN: VIEW BOOKINGS
 =============================== */
+
 router.get("/admin/bookings", async (req, res) => {
+
   try {
-    const { data: bookings, error } = await Booking.fetchBookings({ order: "desc" });
+
+    const { data, error } = await supabase
+      .from("bookings")
+      .select("*")
+      .order("created_at", { ascending: false });
 
     if (error) {
+
       console.error("🔥 Supabase fetch error:", error);
+
       return res.status(500).json({
         error: "Failed to fetch bookings",
         details: error.message,
       });
+
     }
 
-    res.json(bookings || []);
+    res.json(data || []);
+
   } catch (err) {
+
     console.error("🔥 Booking fetch error:", err);
+
     res.status(500).json({
       error: "Failed to fetch bookings",
       details: err.message,
     });
+
   }
+
 });
 
 module.exports = router;

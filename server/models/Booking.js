@@ -1,44 +1,43 @@
-const db = require("../db");
+const supabase = require("../supabase");
 
-function createBooking({
+/* CREATE BOOKING */
+
+async function createBooking({
   order_id,
   amount,
   status,
   name,
-  age,
   phone,
-  people_count,
+  travellers,
+  traveller_count,
+  package_name,
   travel_date
 }) {
 
   try {
 
-    const result = db.prepare(`
-      INSERT INTO bookings (
-        order_id,
-        amount,
-        status,
-        name,
-        age,
-        phone,
-        people_count,
-        travel_date
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      order_id,
-      amount,
-      status,
-      name || null,
-      age || null,
-      phone || null,
-      people_count || null,
-      travel_date || null
-    );
+    const { data, error } = await supabase
+      .from("bookings")
+      .insert([
+        {
+          order_id,
+          amount,
+          status,
+          name,
+          phone,
+          travellers,
+          traveller_count,
+          package_name,
+          travel_date
+        }
+      ])
+      .select();
+
+    if (error) throw error;
 
     return {
       success: true,
-      id: result.lastInsertRowid
+      data
     };
 
   } catch (error) {
@@ -54,19 +53,22 @@ function createBooking({
 
 }
 
-function fetchBookings({ order = "desc" } = {}) {
+/* FETCH BOOKINGS */
+
+async function fetchBookings({ order = "desc" } = {}) {
 
   try {
 
-    const rows = db.prepare(`
-      SELECT *
-      FROM bookings
-      ORDER BY created_at ${order === "asc" ? "ASC" : "DESC"}
-    `).all();
+    const { data, error } = await supabase
+      .from("bookings")
+      .select("*")
+      .order("created_at", { ascending: order === "asc" });
+
+    if (error) throw error;
 
     return {
       success: true,
-      data: rows
+      data
     };
 
   } catch (error) {

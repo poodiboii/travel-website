@@ -4,37 +4,9 @@ const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const { decrypt } = require("./ccavenue");
-const db = require("./db");
+const supabase = require("./supabase");
 
 const app = express();
-
-/* ================================
-   DATABASE INITIALIZATION (RESET)
-================================ */
-
-try {
-  db.exec(`
-DROP TABLE IF EXISTS bookings;
-
-CREATE TABLE bookings (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  order_id TEXT,
-  amount REAL,
-  status TEXT,
-  name TEXT,
-  phone TEXT,
-  travellers TEXT,
-  traveller_count INTEGER,
-  package_name TEXT,
-  travel_date TEXT,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-`);
-
-  console.log("Bookings table recreated with correct schema");
-} catch (err) {
-  console.error("Database initialization error:", err);
-}
 
 /* ================================
    MIDDLEWARE
@@ -49,14 +21,14 @@ app.use(bodyParser.urlencoded({ extended: true }));
 ================================ */
 
 app.get("/", (req, res) => {
-  res.send("Backend is running 🚀");
+  res.send("Backend running 🚀");
 });
 
 /* ================================
-   CREATE BOOKING (FROM CART)
+   SAVE BOOKING (FROM CART)
 ================================ */
 
-app.post("/api/book", (req, res) => {
+app.post("/api/book", async (req, res) => {
 
   try {
 
@@ -71,30 +43,25 @@ app.post("/api/book", (req, res) => {
 
     const orderId = "TEMP_" + Date.now();
 
-    db.prepare(`
-      INSERT INTO bookings (
-        order_id,
-        amount,
-        status,
-        name,
-        phone,
-        travellers,
-        traveller_count,
-        package_name,
-        travel_date
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      orderId,
-      1000,
-      "Pending",
-      name,
-      phone,
-      JSON.stringify(travellers),
-      traveller_count,
-      package_name,
-      travel_date
-    );
+    const { data, error } = await supabase
+      .from("bookings")
+      .insert([
+        {
+          order_id: orderId,
+          amount: 1000,
+          status: "Pending",
+          name,
+          phone,
+          travellers,
+          traveller_count,
+          package_name,
+          travel_date
+        }
+      ]);
+
+    if (error) throw error;
+
+    console.log("Booking saved:", orderId);
 
     res.json({
       success: true,
@@ -117,105 +84,36 @@ app.post("/api/book", (req, res) => {
    VIEW BOOKINGS
 ================================ */
 
-app.get("/api/bookings", (req, res) => {
+app.get("/api/bookings", async (req, res) => {
+
   try {
-    const bookings = db.prepare(`
-      SELECT * FROM bookings
-      ORDER BY created_at DESC
-    `).all();
 
-    let rowsHtml = bookings.map(b => `
-      <tr>
-        <td>${b.id}</td>
-        <td>${b.name}</td>
-        <td>${b.age}</td>
-        <td>${b.phone}</td>
-        <td>${b.people_count}</td>
-        <td>${b.travel_date}</td>
-        <td>${b.status}</td>
-        <td>${b.amount || "0"}</td>
-        <td>${b.created_at}</td>
-      </tr>
-    `).join("");
+    const { data, error } = await supabase
+      .from("bookings")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-    const html = `
-      <html>
-      <head>
-        <title>Travel Website Bookings</title>
-        <style>
-          body {
-            font-family: Arial, sans-serif;
-            background:#f4f6f8;
-            padding:40px;
-          }
-          h1{
-            text-align:center;
-            margin-bottom:30px;
-          }
-          table{
-            width:100%;
-            border-collapse:collapse;
-            background:white;
-            box-shadow:0 5px 20px rgba(0,0,0,0.1);
-          }
-          th{
-            background:#2c3e50;
-            color:white;
-            padding:12px;
-          }
-          td{
-            padding:10px;
-            border-bottom:1px solid #eee;
-            text-align:center;
-          }
-          tr:hover{
-            background:#f1f1f1;
-          }
-        </style>
-      </head>
+    if (error) throw error;
 
-      <body>
-
-      <h1>📋 Booking Dashboard</h1>
-
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Age</th>
-            <th>Phone</th>
-            <th>Travellers</th>
-            <th>Travel Date</th>
-            <th>Status</th>
-            <th>Advance Paid</th>
-            <th>Created</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          ${rowsHtml}
-        </tbody>
-
-      </table>
-
-      </body>
-      </html>
-    `;
-
-    res.send(html);
+    res.json(data);
 
   } catch (err) {
+
     console.error("Fetch bookings error:", err);
-    res.status(500).send("Error loading bookings");
+
+    res.status(500).json({
+      error: err.message
+    });
+
   }
+
 });
 
 /* ================================
    CCAVENUE PAYMENT RESPONSE
 ================================ */
 
-app.post("/payment-response", (req, res) => {
+app.post("/payment-response", async (req, res) => {
 
   const frontend = process.env.FRONTEND_BASE_URL || "http://localhost:3000";
 
@@ -224,11 +122,11 @@ app.post("/payment-response", (req, res) => {
     const encryptedResponse = req.body.encResp;
 
     if (!encryptedResponse) {
-      console.warn("No payment response received");
       return res.redirect(`${frontend}/payment-failed`);
     }
 
     const decryptedData = decrypt(encryptedResponse);
+
     const params = new URLSearchParams(decryptedData);
 
     const orderId = params.get("order_id");
@@ -239,13 +137,15 @@ app.post("/payment-response", (req, res) => {
 
     if (status === "Success") {
 
-      db.prepare(`
-        UPDATE bookings
-        SET status = ?, amount = ?
-        WHERE order_id = ?
-      `).run("Success", Number(amount), orderId);
+      const { error } = await supabase
+        .from("bookings")
+        .update({
+          status: "Success",
+          amount: Number(amount)
+        })
+        .eq("order_id", orderId);
 
-      console.log("Payment success updated");
+      if (error) throw error;
 
       return res.redirect(`${frontend}/payment-success?order_id=${orderId}`);
     }
@@ -259,23 +159,40 @@ app.post("/payment-response", (req, res) => {
     return res.redirect(`${frontend}/payment-failed`);
 
   }
+
 });
 
 /* ================================
-   TEST BOOKING ROUTE
+   TEST BOOKING
 ================================ */
 
-app.get("/test-booking", (req, res) => {
+app.get("/test-booking", async (req, res) => {
 
   const fakeId = "TEST_" + Date.now();
 
-  db.prepare(`
-    INSERT INTO bookings (order_id, amount, status)
-    VALUES (?, ?, ?)
-  `).run(fakeId, 1499, "Success");
+  const { error } = await supabase
+    .from("bookings")
+    .insert([
+      {
+        order_id: fakeId,
+        amount: 1000,
+        status: "Success",
+        name: "Test User",
+        phone: "9999999999",
+        travellers: [],
+        traveller_count: 1,
+        package_name: "Test Package",
+        travel_date: "2026-01-01"
+      }
+    ]);
+
+  if (error) {
+    res.status(500).send(error.message);
+    return;
+  }
 
   res.json({
-    message: "Test booking created",
+    message: "Test booking inserted",
     order_id: fakeId
   });
 
