@@ -1,15 +1,15 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import "./Cart.css";
 
 const ADVANCE_AMOUNT = 1000;
 
 function Cart() {
-  const { cartItems, removeFromCart, clearCart } = useCart();
-  const navigate = useNavigate();
 
-  const API_URL = process.env.REACT_APP_API_URL;
+  const { cartItems, removeFromCart, clearCart } = useCart();
+
+  const API_URL = process.env.REACT_APP_API_URL || "https://travel-website-m1kn.onrender.com";
 
   const [showBreakdown, setShowBreakdown] = useState({});
   const [showDetails, setShowDetails] = useState(false);
@@ -20,42 +20,49 @@ function Cart() {
 
   const [phoneNumber, setPhoneNumber] = useState("");
 
-  const totalAdvance = cartItems.length > 0 ? ADVANCE_AMOUNT : 0;
-
   const toggleBreakdown = (id) => {
     setShowBreakdown((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   const handleTravellerCountChange = (count) => {
+
     setTravellerCount(count);
+
     setTravellers(
       Array.from({ length: count }, (_, i) => ({
         name: travellers[i]?.name || "",
         age: travellers[i]?.age || "",
       }))
     );
+
   };
 
   const handleTravellerChange = (index, field, value) => {
+
     const updated = [...travellers];
     updated[index][field] = value;
     setTravellers(updated);
+
   };
 
   const isFormValid =
     travelDate &&
     phoneNumber &&
-    travellers.every((t) => t.name.trim() !== "" && t.age.trim() !== "");
+    travellers.every(
+      (t) => t.name.trim() !== "" && t.age.trim() !== ""
+    );
 
   const handleCheckout = () => setShowDetails(true);
 
   /* FINAL CHECKOUT + SAVE BOOKING */
   const handleFinalPayment = async () => {
+
     if (!isFormValid) return;
 
     try {
 
       /* SAVE BOOKING FIRST */
+
       const bookingPayload = {
         name: travellers[0]?.name || "Guest",
         phone: phoneNumber,
@@ -67,43 +74,67 @@ function Cart() {
 
       console.log("Saving booking:", bookingPayload);
 
-      await fetch(`${API_URL}/api/book`, {
+      const bookingRes = await fetch(`${API_URL}/api/book`, {
+
         method: "POST",
+
         headers: {
           "Content-Type": "application/json"
         },
+
         body: JSON.stringify(bookingPayload)
+
       });
 
+      if (!bookingRes.ok) {
+
+        alert("Booking could not be saved. Please try again.");
+        return;
+
+      }
+
       /* START PAYMENT */
+
       const payload = {
+
         order_id: `ORDER_${Date.now()}`,
+
         amount: ADVANCE_AMOUNT.toFixed(2),
+
         billing_name: travellers[0]?.name || "Guest",
+
         billing_email: "guest@example.com",
+
         billing_tel: phoneNumber,
+
       };
 
       console.log("Sending payment request:", payload);
 
       const res = await fetch(`${API_URL}/api/initiate-payment`, {
+
         method: "POST",
+
         headers: {
           "Content-Type": "application/json",
         },
+
         body: JSON.stringify(payload),
+
       });
 
       const data = await res.json();
 
-      console.log("Payment API response:", data);
-
       if (!data.encRequest || !data.accessCode) {
+
         alert("Payment initialization failed.");
+
         return;
+
       }
 
       const form = document.createElement("form");
+
       form.method = "POST";
 
       form.action =
@@ -128,38 +159,58 @@ function Cart() {
       form.submit();
 
     } catch (err) {
+
       console.error("Checkout error:", err);
+
       alert("Payment service unavailable. Please try again.");
+
     }
+
   };
 
   if (cartItems.length === 0) {
+
     return (
+
       <div className="cart-page">
+
         <div className="empty-cart-box">
+
           <h2>Your cart is empty</h2>
+
           <p>Explore our curated packages and reserve your holiday.</p>
+
           <Link to="/packages" className="btn-checkout">
             Browse Packages
           </Link>
+
         </div>
+
       </div>
+
     );
+
   }
 
   return (
+
     <div className="cart-page">
+
       <h2>Your Reservation Cart</h2>
 
       <div className="cart-table">
+
         <div className="cart-header">
+
           <span>Package</span>
           <span>Advance</span>
           <span>Details</span>
           <span>Remove</span>
+
         </div>
 
         {cartItems.map((item) => {
+
           const numericPrice =
             typeof item.price === "number"
               ? item.price
@@ -168,10 +219,15 @@ function Cart() {
           const balance = Math.max(0, numericPrice - ADVANCE_AMOUNT);
 
           return (
+
             <div key={item.id} className="cart-row">
+
               <div className="cart-package">
+
                 {item.image && <img src={item.image} alt={item.name} />}
+
                 <span>{item.name}</span>
+
               </div>
 
               <span>₹{ADVANCE_AMOUNT}</span>
@@ -180,29 +236,44 @@ function Cart() {
                 className="btn-breakdown"
                 onClick={() => toggleBreakdown(item.id)}
               >
+
                 {showBreakdown[item.id] ? "Hide Breakdown" : "View Breakdown"}
+
               </button>
 
               <button
                 className="btn-remove"
                 onClick={() => removeFromCart(item.id)}
               >
+
                 Remove
+
               </button>
 
               {showBreakdown[item.id] && (
+
                 <div className="payment-breakdown">
+
                   <p><strong>Full Price:</strong> ₹{numericPrice}</p>
+
                   <p><strong>Advance Payable Now:</strong> ₹1000</p>
+
                   <p><strong>Balance:</strong> ₹{balance}</p>
+
                 </div>
+
               )}
+
             </div>
+
           );
+
         })}
+
       </div>
 
       <div className="cart-summary">
+
         <p><strong>Advance Payable Now:</strong> ₹1000</p>
 
         <button className="btn-checkout" onClick={handleCheckout}>
@@ -212,10 +283,13 @@ function Cart() {
         <button className="btn-clear" onClick={clearCart}>
           Clear Cart
         </button>
+
       </div>
 
       {showDetails && (
+
         <div className="modal-overlay">
+
           <div className="modal-card">
 
             <button
@@ -245,13 +319,19 @@ function Cart() {
                 handleTravellerCountChange(Number(e.target.value))
               }
             >
+
               {[1, 2, 3, 4, 5, 6].map((n) => (
+
                 <option key={n}>{n}</option>
+
               ))}
+
             </select>
 
             {travellers.map((t, i) => (
+
               <div key={i}>
+
                 <input
                   placeholder="Name"
                   value={t.name}
@@ -259,6 +339,7 @@ function Cart() {
                     handleTravellerChange(i, "name", e.target.value)
                   }
                 />
+
                 <input
                   placeholder="Age"
                   value={t.age}
@@ -266,7 +347,9 @@ function Cart() {
                     handleTravellerChange(i, "age", e.target.value)
                   }
                 />
+
               </div>
+
             ))}
 
             <button
@@ -278,10 +361,15 @@ function Cart() {
             </button>
 
           </div>
+
         </div>
+
       )}
+
     </div>
+
   );
+
 }
 
 export default Cart;

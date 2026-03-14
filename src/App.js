@@ -11,7 +11,7 @@ import Packages from "./pages/Packages";
 import Contact from "./pages/Contact";
 import PackageDetailsPage from "./pages/PackageDetailsPage";
 
-/* ✅ Custom Package */
+/* Custom Package */
 import CustomPackage from "./pages/CustomPackage";
 
 /* Hotels */
@@ -40,12 +40,17 @@ import PaymentFailed from "./pages/PaymentFailed";
 import WhatsAppChat from "./components/WhatsAppChat";
 
 function App() {
+
   return (
+
     <div className="app-container">
+
       <Header />
 
       <main className="app-main">
+
         <Routes>
+
           {/* Home */}
           <Route path="/" element={<Home />} />
 
@@ -59,7 +64,7 @@ function App() {
             element={<PackageDetailsPage />}
           />
 
-          {/* ✅ Custom Package */}
+          {/* Custom Package */}
           <Route
             path="/custom-package"
             element={<CustomPackage />}
@@ -88,30 +93,37 @@ function App() {
 
           {/* Checkout */}
           <Route path="/checkout/:kind/:id" element={<Checkout />} />
+
+          {/* Payment Results */}
           <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/payment-failed" element={<PaymentFailed />} />
 
-          {/* Auth */}
+          {/* Login */}
           <Route path="/login" element={<Login />} />
 
-          {/* ✅ Admin Dashboard (Protected) */}
+          {/* Admin Dashboard */}
           <Route
-            path="/admin"
+            path="/admin/bookings"
             element={
               <ProtectedRoute requireAdmin>
                 <AdminBookings />
               </ProtectedRoute>
             }
           />
+
         </Routes>
+
       </main>
 
       <Footer />
 
-      {/* Floating WhatsApp chat on all pages */}
+      {/* Floating WhatsApp */}
       <WhatsAppChat />
+
     </div>
+
   );
+
 }
 
 export default App;
