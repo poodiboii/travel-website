@@ -18,6 +18,8 @@ function Cart() {
   const [travellerCount, setTravellerCount] = useState(1);
   const [travellers, setTravellers] = useState([{ name: "", age: "" }]);
 
+  const [phoneNumber, setPhoneNumber] = useState("");
+
   const totalAdvance = cartItems.length > 0 ? ADVANCE_AMOUNT : 0;
 
   const toggleBreakdown = (id) => {
@@ -42,6 +44,7 @@ function Cart() {
 
   const isFormValid =
     travelDate &&
+    phoneNumber &&
     travellers.every((t) => t.name.trim() !== "" && t.age.trim() !== "");
 
   const handleCheckout = () => setShowDetails(true);
@@ -55,9 +58,10 @@ function Cart() {
       /* SAVE BOOKING FIRST */
       const bookingPayload = {
         name: travellers[0]?.name || "Guest",
-        age: travellers[0]?.age || "",
-        phone: "9999999999",
-        people_count: travellerCount,
+        phone: phoneNumber,
+        traveller_count: travellerCount,
+        travellers: travellers,
+        package_name: cartItems[0]?.name || "Custom Trip",
         travel_date: travelDate
       };
 
@@ -77,7 +81,7 @@ function Cart() {
         amount: ADVANCE_AMOUNT.toFixed(2),
         billing_name: travellers[0]?.name || "Guest",
         billing_email: "guest@example.com",
-        billing_tel: "9999999999",
+        billing_tel: phoneNumber,
       };
 
       console.log("Sending payment request:", payload);
@@ -120,8 +124,6 @@ function Cart() {
       form.appendChild(accessInput);
 
       document.body.appendChild(form);
-
-      console.log("Redirecting to payment gateway...");
 
       form.submit();
 
@@ -202,9 +204,6 @@ function Cart() {
 
       <div className="cart-summary">
         <p><strong>Advance Payable Now:</strong> ₹1000</p>
-        <p style={{ fontSize: "0.9rem", opacity: 0.8 }}>
-          ₹1000 is an adjustable advance. Balance payable later.
-        </p>
 
         <button className="btn-checkout" onClick={handleCheckout}>
           Pay ₹1000 Advance
@@ -232,6 +231,12 @@ function Cart() {
               type="date"
               value={travelDate}
               onChange={(e) => setTravelDate(e.target.value)}
+            />
+
+            <input
+              placeholder="Phone Number"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
             />
 
             <select
