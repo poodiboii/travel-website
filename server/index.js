@@ -14,21 +14,22 @@ const app = express();
 
 try {
   db.exec(`
-    DROP TABLE IF EXISTS bookings;
+DROP TABLE IF EXISTS bookings;
 
-    CREATE TABLE bookings (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      order_id TEXT,
-      amount REAL,
-      status TEXT,
-      name TEXT,
-      age INTEGER,
-      phone TEXT,
-      people_count INTEGER,
-      travel_date TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
+CREATE TABLE bookings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  order_id TEXT,
+  amount REAL,
+  status TEXT,
+  name TEXT,
+  phone TEXT,
+  travellers TEXT,
+  traveller_count INTEGER,
+  package_name TEXT,
+  travel_date TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+`);
 
   console.log("Bookings table recreated with correct schema");
 } catch (err) {
@@ -56,14 +57,17 @@ app.get("/", (req, res) => {
 ================================ */
 
 app.post("/api/book", (req, res) => {
-  try {
-    console.log("Incoming booking:", req.body);
 
-    const name = req.body.name || "Guest";
-    const age = Number(req.body.age) || 0;
-    const phone = req.body.phone || "0000000000";
-    const people_count = Number(req.body.people_count) || 1;
-    const travel_date = req.body.travel_date || "";
+  try {
+
+    const {
+      name,
+      phone,
+      travellers,
+      traveller_count,
+      package_name,
+      travel_date
+    } = req.body;
 
     const orderId = "TEMP_" + Date.now();
 
@@ -73,24 +77,24 @@ app.post("/api/book", (req, res) => {
         amount,
         status,
         name,
-        age,
         phone,
-        people_count,
+        travellers,
+        traveller_count,
+        package_name,
         travel_date
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       orderId,
-      0,
+      1000,
       "Pending",
       name,
-      age,
       phone,
-      people_count,
+      JSON.stringify(travellers),
+      traveller_count,
+      package_name,
       travel_date
     );
-
-    console.log("Booking saved:", orderId);
 
     res.json({
       success: true,
@@ -98,12 +102,15 @@ app.post("/api/book", (req, res) => {
     });
 
   } catch (err) {
-    console.error("BOOKING INSERT ERROR:", err);
+
+    console.error("Booking error:", err);
 
     res.status(500).json({
       error: err.message
     });
+
   }
+
 });
 
 /* ================================
