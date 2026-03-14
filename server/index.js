@@ -4,32 +4,36 @@ const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const { decrypt } = require("./ccavenue");
-
-// SQLite connection
 const db = require("./db");
 
 const app = express();
 
 /* ================================
-   DATABASE INITIALIZATION
+   DATABASE INITIALIZATION (RESET)
 ================================ */
 
-db.prepare(`
-CREATE TABLE IF NOT EXISTS bookings (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  order_id TEXT,
-  amount REAL,
-  status TEXT,
-  name TEXT,
-  age INTEGER,
-  phone TEXT,
-  people_count INTEGER,
-  travel_date TEXT,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-)
-`).run();
+try {
+  db.exec(`
+    DROP TABLE IF EXISTS bookings;
 
-console.log("SQLite table ready");
+    CREATE TABLE bookings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_id TEXT,
+      amount REAL,
+      status TEXT,
+      name TEXT,
+      age INTEGER,
+      phone TEXT,
+      people_count INTEGER,
+      travel_date TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  console.log("Bookings table recreated with correct schema");
+} catch (err) {
+  console.error("Database initialization error:", err);
+}
 
 /* ================================
    MIDDLEWARE
@@ -52,15 +56,13 @@ app.get("/", (req, res) => {
 ================================ */
 
 app.post("/api/book", (req, res) => {
-
   try {
-
     console.log("Incoming booking:", req.body);
 
     const name = req.body.name || "Guest";
-    const age = parseInt(req.body.age) || 0;
+    const age = Number(req.body.age) || 0;
     const phone = req.body.phone || "0000000000";
-    const people_count = parseInt(req.body.people_count) || 1;
+    const people_count = Number(req.body.people_count) || 1;
     const travel_date = req.body.travel_date || "";
 
     const orderId = "TEMP_" + Date.now();
@@ -95,43 +97,35 @@ app.post("/api/book", (req, res) => {
       order_id: orderId
     });
 
-  } catch (error) {
-
-    console.error("Booking save error:", error);
+  } catch (err) {
+    console.error("BOOKING INSERT ERROR:", err);
 
     res.status(500).json({
-      error: "Failed to save booking"
+      error: err.message
     });
-
   }
-
 });
 
 /* ================================
-   VIEW BOOKINGS (DEBUG)
+   VIEW BOOKINGS
 ================================ */
 
 app.get("/api/bookings", (req, res) => {
-
   try {
-
-    const bookings = db.prepare(`
+    const rows = db.prepare(`
       SELECT * FROM bookings
       ORDER BY created_at DESC
     `).all();
 
-    res.json(bookings);
+    res.json(rows);
 
-  } catch (error) {
-
-    console.error("Fetch error:", error);
+  } catch (err) {
+    console.error("Fetch bookings error:", err);
 
     res.status(500).json({
       error: "Failed to fetch bookings"
     });
-
   }
-
 });
 
 /* ================================
@@ -173,8 +167,6 @@ app.post("/payment-response", (req, res) => {
       return res.redirect(`${frontend}/payment-success?order_id=${orderId}`);
     }
 
-    console.log("Payment failed");
-
     return res.redirect(`${frontend}/payment-failed`);
 
   } catch (err) {
@@ -184,7 +176,6 @@ app.post("/payment-response", (req, res) => {
     return res.redirect(`${frontend}/payment-failed`);
 
   }
-
 });
 
 /* ================================
