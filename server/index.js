@@ -1,8 +1,8 @@
 require("dotenv").config();
 
 const express = require("express");
-const bodyParser = require("body-parser");
 const cors = require("cors");
+const bodyParser = require("body-parser");
 const { decrypt } = require("./ccavenue");
 
 // SQLite connection
@@ -11,7 +11,7 @@ const db = require("./db");
 const app = express();
 
 /* ================================
-   INITIALIZE SQLITE TABLE
+   DATABASE INITIALIZATION
 ================================ */
 
 db.prepare(`
@@ -29,12 +29,7 @@ CREATE TABLE IF NOT EXISTS bookings (
 )
 `).run();
 
-/* ================================
-   IMPORT ROUTES
-================================ */
-
-const paymentRoutes = require("./payment");
-const authRoutes = require("./auth");
+console.log("SQLite table ready");
 
 /* ================================
    MIDDLEWARE
@@ -53,21 +48,20 @@ app.get("/", (req, res) => {
 });
 
 /* ================================
-   ROUTES
-================================ */
-
-app.use("/api", paymentRoutes);
-app.use("/api/auth", authRoutes);
-
-/* ================================
-   CREATE BOOKING
+   CREATE BOOKING (FROM CART)
 ================================ */
 
 app.post("/api/book", (req, res) => {
 
   try {
 
-    const { name, age, phone, people_count, travel_date } = req.body;
+    console.log("Incoming booking:", req.body);
+
+    const name = req.body.name || "Guest";
+    const age = parseInt(req.body.age) || 0;
+    const phone = req.body.phone || "0000000000";
+    const people_count = parseInt(req.body.people_count) || 1;
+    const travel_date = req.body.travel_date || "";
 
     const orderId = "TEMP_" + Date.now();
 
@@ -94,19 +88,19 @@ app.post("/api/book", (req, res) => {
       travel_date
     );
 
+    console.log("Booking saved:", orderId);
+
     res.json({
       success: true,
-      message: "Booking stored successfully",
       order_id: orderId
     });
 
   } catch (error) {
 
-    console.error("Booking error:", error);
+    console.error("Booking save error:", error);
 
     res.status(500).json({
-      success: false,
-      message: "Failed to store booking"
+      error: "Failed to save booking"
     });
 
   }
@@ -114,7 +108,7 @@ app.post("/api/book", (req, res) => {
 });
 
 /* ================================
-   VIEW BOOKINGS (NEW)
+   VIEW BOOKINGS (DEBUG)
 ================================ */
 
 app.get("/api/bookings", (req, res) => {
@@ -130,7 +124,7 @@ app.get("/api/bookings", (req, res) => {
 
   } catch (error) {
 
-    console.error("Fetch bookings error:", error);
+    console.error("Fetch error:", error);
 
     res.status(500).json({
       error: "Failed to fetch bookings"
@@ -144,7 +138,7 @@ app.get("/api/bookings", (req, res) => {
    CCAVENUE PAYMENT RESPONSE
 ================================ */
 
-app.post("/payment-response", async (req, res) => {
+app.post("/payment-response", (req, res) => {
 
   const frontend = process.env.FRONTEND_BASE_URL || "http://localhost:3000";
 
@@ -153,7 +147,8 @@ app.post("/payment-response", async (req, res) => {
     const encryptedResponse = req.body.encResp;
 
     if (!encryptedResponse) {
-      return res.redirect(`${frontend}/payment-failed?reason=no_response`);
+      console.warn("No payment response received");
+      return res.redirect(`${frontend}/payment-failed`);
     }
 
     const decryptedData = decrypt(encryptedResponse);
@@ -163,7 +158,7 @@ app.post("/payment-response", async (req, res) => {
     const amount = params.get("amount");
     const status = params.get("order_status");
 
-    console.log(`Payment callback → ${orderId} | ${status}`);
+    console.log("Payment response:", orderId, status);
 
     if (status === "Success") {
 
@@ -173,23 +168,27 @@ app.post("/payment-response", async (req, res) => {
         WHERE order_id = ?
       `).run("Success", Number(amount), orderId);
 
+      console.log("Payment success updated");
+
       return res.redirect(`${frontend}/payment-success?order_id=${orderId}`);
     }
 
-    return res.redirect(`${frontend}/payment-failed?status=${status}`);
+    console.log("Payment failed");
+
+    return res.redirect(`${frontend}/payment-failed`);
 
   } catch (err) {
 
-    console.error("Payment error:", err);
+    console.error("Payment callback error:", err);
 
-    return res.redirect(`${frontend}/payment-failed?reason=server_error`);
+    return res.redirect(`${frontend}/payment-failed`);
 
   }
 
 });
 
 /* ================================
-   TEST PAYMENT
+   TEST BOOKING ROUTE
 ================================ */
 
 app.get("/test-booking", (req, res) => {
@@ -202,7 +201,7 @@ app.get("/test-booking", (req, res) => {
   `).run(fakeId, 1499, "Success");
 
   res.json({
-    message: "Test booking inserted",
+    message: "Test booking created",
     order_id: fakeId
   });
 
