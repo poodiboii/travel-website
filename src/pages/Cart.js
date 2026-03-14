@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import "./Cart.css";
 
-/* ₹1000 ADVANCE */
 const ADVANCE_AMOUNT = 1000;
 
 function Cart() {
@@ -43,25 +42,44 @@ function Cart() {
 
   const isFormValid =
     travelDate &&
-    travellers.every(
-      (t) => t.name.trim() !== "" && t.age.trim() !== ""
-    );
+    travellers.every((t) => t.name.trim() !== "" && t.age.trim() !== "");
 
   const handleCheckout = () => setShowDetails(true);
 
-  /* 💳 LIVE CCAVENUE PAYMENT */
+  /* FINAL CHECKOUT + SAVE BOOKING */
   const handleFinalPayment = async () => {
     if (!isFormValid) return;
 
-    const payload = {
-      order_id: `ORDER_${Date.now()}`,
-      amount: ADVANCE_AMOUNT.toFixed(2),
-      billing_name: travellers[0]?.name || "Guest",
-      billing_email: "guest@example.com",
-      billing_tel: "9999999999",
-    };
-
     try {
+
+      /* SAVE BOOKING FIRST */
+      const bookingPayload = {
+        name: travellers[0]?.name || "Guest",
+        age: travellers[0]?.age || "",
+        phone: "9999999999",
+        people_count: travellerCount,
+        travel_date: travelDate
+      };
+
+      console.log("Saving booking:", bookingPayload);
+
+      await fetch(`${API_URL}/api/book`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(bookingPayload)
+      });
+
+      /* START PAYMENT */
+      const payload = {
+        order_id: `ORDER_${Date.now()}`,
+        amount: ADVANCE_AMOUNT.toFixed(2),
+        billing_name: travellers[0]?.name || "Guest",
+        billing_email: "guest@example.com",
+        billing_tel: "9999999999",
+      };
+
       console.log("Sending payment request:", payload);
 
       const res = await fetch(`${API_URL}/api/initiate-payment`, {
@@ -108,12 +126,11 @@ function Cart() {
       form.submit();
 
     } catch (err) {
-      console.error("Payment Error:", err);
+      console.error("Checkout error:", err);
       alert("Payment service unavailable. Please try again.");
     }
   };
 
-  /* EMPTY CART */
   if (cartItems.length === 0) {
     return (
       <div className="cart-page">
