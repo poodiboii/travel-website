@@ -112,19 +112,95 @@ app.post("/api/book", (req, res) => {
 
 app.get("/api/bookings", (req, res) => {
   try {
-    const rows = db.prepare(`
+    const bookings = db.prepare(`
       SELECT * FROM bookings
       ORDER BY created_at DESC
     `).all();
 
-    res.json(rows);
+    let rowsHtml = bookings.map(b => `
+      <tr>
+        <td>${b.id}</td>
+        <td>${b.name}</td>
+        <td>${b.age}</td>
+        <td>${b.phone}</td>
+        <td>${b.people_count}</td>
+        <td>${b.travel_date}</td>
+        <td>${b.status}</td>
+        <td>${b.amount || "0"}</td>
+        <td>${b.created_at}</td>
+      </tr>
+    `).join("");
+
+    const html = `
+      <html>
+      <head>
+        <title>Travel Website Bookings</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            background:#f4f6f8;
+            padding:40px;
+          }
+          h1{
+            text-align:center;
+            margin-bottom:30px;
+          }
+          table{
+            width:100%;
+            border-collapse:collapse;
+            background:white;
+            box-shadow:0 5px 20px rgba(0,0,0,0.1);
+          }
+          th{
+            background:#2c3e50;
+            color:white;
+            padding:12px;
+          }
+          td{
+            padding:10px;
+            border-bottom:1px solid #eee;
+            text-align:center;
+          }
+          tr:hover{
+            background:#f1f1f1;
+          }
+        </style>
+      </head>
+
+      <body>
+
+      <h1>📋 Booking Dashboard</h1>
+
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Age</th>
+            <th>Phone</th>
+            <th>Travellers</th>
+            <th>Travel Date</th>
+            <th>Status</th>
+            <th>Advance Paid</th>
+            <th>Created</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          ${rowsHtml}
+        </tbody>
+
+      </table>
+
+      </body>
+      </html>
+    `;
+
+    res.send(html);
 
   } catch (err) {
     console.error("Fetch bookings error:", err);
-
-    res.status(500).json({
-      error: "Failed to fetch bookings"
-    });
+    res.status(500).send("Error loading bookings");
   }
 });
 
