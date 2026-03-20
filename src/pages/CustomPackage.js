@@ -20,7 +20,7 @@ import PageWrapper from "../components/PageWrapper";
 import { useCart } from "../context/CartContext";
 import { supabase } from "../lib/supabase";
 import "./CustomPackage.css";
-const [loading, setLoading] = useState(false);
+
 
 /* -----------------------------
    Data (extend anytime)
@@ -127,6 +127,7 @@ const stagger = {
 function CustomPackage() {
   const nav = useNavigate();
   const { addToCart } = useCart();
+  const [loading, setLoading] = useState(false);
 
   // Destination
   const [country, setCountry] = useState("");
