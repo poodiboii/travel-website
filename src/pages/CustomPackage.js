@@ -18,6 +18,7 @@ import {
 
 import PageWrapper from "../components/PageWrapper";
 import { useCart } from "../context/CartContext";
+import { supabase } from "../lib/supabase";
 import "./CustomPackage.css";
 
 /* -----------------------------
@@ -204,51 +205,66 @@ function CustomPackage() {
     setSightseeing([]);
   }
 
-  function addPlanToCart() {
-    if (!isReady) return;
-
-    const customPackage = {
-      id: `custom-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      name: `Custom Trip • ${country} • ${city}`,
-      price: advanceAmount,
-      image: null,
-      quantity: 1,
-      meta: {
-        ...summary,
+  async function addPlanToCart() {
+  try {
+    // ✅ SAVE TO SUPABASE FIRST
+    const { error } = await supabase.from("custom_packages").insert([
+      {
         country,
         city,
         sightseeing,
-        startDate,
-        endDate,
+
+        start_date: startDate,
+        end_date: endDate,
+
         adults,
         children,
-        styles,
-        interests,
-        hotelStars,
-        mealPlan,
-        needFlights,
-        needHotel,
-        needVisa,
+
+        hotel_stars: hotelStars,
+        meal_plan: mealPlan,
+
+        need_flights: needFlights,
+        need_hotel: needHotel,
+        need_visa: needVisa,
+        need_cab: needCab,
+
+        budget,
+
+        name,
+        phone,
+        email,
         notes,
       },
-      lead: { 
-        name: name || "Not provided",
-        phone: phone || "Not provided", 
-        email: email || "Not provided",
-        notes: notes || ""
-      }
-    };
+    ]);
 
-    console.log("Adding to cart:", customPackage); // Debug log
-    
-    try {
-      addToCart(customPackage);
-      nav("/cart");
-    } catch (error) {
-      console.error("Failed to add to cart:", error);
-      alert("Failed to add to cart. Please try again.");
+    if (error) {
+      console.error("Supabase error:", error);
+      alert("Failed to save booking");
+      return;
     }
+
+    // ✅ THEN ADD TO CART (KEEPING YOUR STRUCTURE SAME)
+    addToCart({
+      id: `custom-${Date.now()}`,
+      name: `Custom Trip • ${country || "Destination"} • ${city || ""}`.trim(),
+
+      // 🔥 IMPORTANT FIX
+      price: budget,
+
+      image: null,
+      advance: 1000,
+
+      meta: summary,
+      lead: { name, phone, email, notes },
+    });
+
+    nav("/cart");
+
+  } catch (err) {
+    console.error(err);
+    alert("Something went wrong");
   }
+}
 
   return (
     <PageWrapper>
