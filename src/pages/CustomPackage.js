@@ -148,6 +148,10 @@ function CustomPackage() {
   const [needFlights, setNeedFlights] = useState(true);
   const [needHotel, setNeedHotel] = useState(true);
   const [needVisa, setNeedVisa] = useState(false);
+  const [needCab, setNeedCab] = useState(true);
+
+  const [budget, setBudget] = useState(60000);
+  
 
   // Advance (fixed)
   const advanceAmount = 1000;
