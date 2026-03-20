@@ -20,6 +20,7 @@ import PageWrapper from "../components/PageWrapper";
 import { useCart } from "../context/CartContext";
 import { supabase } from "../lib/supabase";
 import "./CustomPackage.css";
+const [loading, setLoading] = useState(false);
 
 /* -----------------------------
    Data (extend anytime)
@@ -151,7 +152,7 @@ function CustomPackage() {
   const [needCab, setNeedCab] = useState(true);
 
   const [budget, setBudget] = useState(60000);
-  
+
 
   // Advance (fixed)
   const advanceAmount = 1000;
@@ -210,30 +211,27 @@ function CustomPackage() {
   }
 
   async function addPlanToCart() {
+  if (loading) return; // 🚫 prevent double click
+
+  setLoading(true);
+
   try {
-    // ✅ SAVE TO SUPABASE FIRST
     const { error } = await supabase.from("custom_packages").insert([
       {
         country,
         city,
         sightseeing,
-
         start_date: startDate,
         end_date: endDate,
-
         adults,
         children,
-
         hotel_stars: hotelStars,
         meal_plan: mealPlan,
-
         need_flights: needFlights,
         need_hotel: needHotel,
         need_visa: needVisa,
         need_cab: needCab,
-
         budget,
-
         name,
         phone,
         email,
@@ -242,32 +240,27 @@ function CustomPackage() {
     ]);
 
     if (error) {
-      console.error("Supabase error:", error);
-      alert("Failed to save booking");
+      console.error(error);
+      alert("Failed to save");
+      setLoading(false);
       return;
     }
 
-    // ✅ THEN ADD TO CART (KEEPING YOUR STRUCTURE SAME)
     addToCart({
       id: `custom-${Date.now()}`,
-      name: `Custom Trip • ${country || "Destination"} • ${city || ""}`.trim(),
-
-      // 🔥 IMPORTANT FIX
+      name: `Custom Trip • ${country} • ${city}`,
       price: budget,
-
-      image: null,
       advance: 1000,
-
       meta: summary,
-      lead: { name, phone, email, notes },
     });
 
     nav("/cart");
-
   } catch (err) {
     console.error(err);
     alert("Something went wrong");
+    setLoading(false);
   }
+
 }
 
   return (
