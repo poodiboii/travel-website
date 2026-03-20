@@ -11,6 +11,9 @@ import {
   FaPlane,
   FaCar,
   FaPassport,
+  FaBowlFood,
+  FaStar,
+  FaCheck,
   FaArrowRight,
 } from "react-icons/fa6";
 
@@ -18,10 +21,9 @@ import PageWrapper from "../components/PageWrapper";
 import { useCart } from "../context/CartContext";
 import "./CustomPackage.css";
 
-/* 🔒 FIXED ADVANCE */
-const ADVANCE_AMOUNT = 1000;
-
-/* DATA */
+/* -----------------------------
+   Data (extend anytime)
+------------------------------ */
 const COUNTRY_CITY_DATA = {
   Thailand: ["Bangkok", "Phuket", "Pattaya"],
   Bali: ["Ubud", "Kuta", "Seminyak"],
@@ -42,17 +44,59 @@ const SIGHTSEEING_DATA = {
   Sentosa: ["Universal Studios", "Cable Car"],
   "Marina Bay": ["Gardens by the Bay", "SkyPark"],
   Goa: ["North Goa", "South Goa", "Beach Day"],
-  Manali: ["Solang Valley", "Local sightseeing"],
-  Jaipur: ["Amer Fort", "City Palace"],
-  Kerala: ["Backwaters", "Tea estates"],
+  Manali: ["Solang Valley", "Local sightseeing", "Cafe hopping"],
+  Jaipur: ["Amer Fort", "City Palace", "Markets"],
+  Kerala: ["Backwaters", "Tea estates", "Beaches"],
 };
+
+const HOTEL_RATING = [
+  { label: "3★", value: 3 },
+  { label: "4★", value: 4 },
+  { label: "5★", value: 5 },
+];
+
+const MEAL_PLANS = ["Room only", "Breakfast", "Half board", "Full board"];
+
+/* -----------------------------
+   Helpers
+------------------------------ */
+function toggleFrom(list, value) {
+  return list.includes(value)
+    ? list.filter((x) => x !== value)
+    : [...list, value];
+}
+
+function formatDate(d) {
+  if (!d) return "—";
+  try {
+    return new Date(d).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return d;
+  }
+}
 
 function nightsBetween(a, b) {
   if (!a || !b) return null;
   const start = new Date(a);
   const end = new Date(b);
-  return Math.max(0, Math.round((end - start) / (1000 * 60 * 60 * 24)));
+  const ms = end - start;
+  if (!Number.isFinite(ms)) return null;
+  return Math.max(0, Math.round(ms / (1000 * 60 * 60 * 24)));
 }
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.55 } },
+};
+
+const stagger = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.08 } },
+};
 
 function CustomPackage() {
   const nav = useNavigate();
@@ -67,44 +111,54 @@ function CustomPackage() {
   const [adults, setAdults] = useState(2);
   const [children, setChildren] = useState(0);
 
+  const [hotelStars, setHotelStars] = useState(4);
+  const [mealPlan, setMealPlan] = useState("Breakfast");
+
+  const [needFlights, setNeedFlights] = useState(true);
+  const [needHotel, setNeedHotel] = useState(true);
+  const [needVisa, setNeedVisa] = useState(false);
+  const [needCab, setNeedCab] = useState(true);
+
   const [budget, setBudget] = useState(60000);
+
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [notes, setNotes] = useState("");
 
   const tripNights = useMemo(
     () => nightsBetween(startDate, endDate),
     [startDate, endDate]
   );
 
-  const isReady = country && city && startDate && endDate;
+  const cityOptions = country ? COUNTRY_CITY_DATA[country] : [];
+  const sightseeingOptions = city ? SIGHTSEEING_DATA[city] : [];
 
-  const cityOptions = country ? COUNTRY_CITY_DATA[country] || [] : [];
-  const sightseeingOptions = city ? SIGHTSEEING_DATA[city] || [] : [];
+  const isReady =
+    country && city && startDate && endDate && adults >= 1;
 
-  /* ✅ FIXED ADD TO CART */
+  const summary = {
+    destination: [country, city].join(" • "),
+    dates: `${formatDate(startDate)} → ${formatDate(endDate)}`,
+    duration: `${tripNights || 0} nights`,
+    travellers: `${adults} adult${children ? `, ${children} child` : ""}`,
+    hotel: `${hotelStars}★ • ${mealPlan}`,
+    visa: needVisa ? "Included" : "Not included",
+    flights: needFlights ? "Included" : "Not included",
+    sights: sightseeing.join(", "),
+    budget: `₹${budget}`,
+  };
+
   function addPlanToCart() {
-    const item = {
+    addToCart({
       id: `custom-${Date.now()}`,
       name: `Custom Trip • ${country} • ${city}`,
-
-      // 🔥 CRITICAL FIX (NUMBER ONLY)
-      price: Number(budget),
-
+      price: budget, // ✅ FIXED
       image: null,
-      advance: ADVANCE_AMOUNT,
-
-      meta: {
-        country,
-        city,
-        sightseeing,
-        startDate,
-        endDate,
-        travellers: adults + children,
-        nights: tripNights,
-      },
-    };
-
-    console.log("🟢 Adding to cart:", item); // DEBUG
-
-    addToCart(item);
+      advance: 1000, // ✅ NEW
+      meta: summary,
+      lead: { name, phone, email, notes },
+    });
 
     nav("/cart");
   }
@@ -113,102 +167,33 @@ function CustomPackage() {
     <PageWrapper>
       <div className="ctp">
         <section className="ctp-hero">
-          <h1>Build Your Custom Trip</h1>
+          <div className="ctp-hero-bg" />
+          <div className="container">
+            <h1>Build Your Custom Trip</h1>
+          </div>
         </section>
 
         <div className="container ctp-layout">
           <div className="ctp-main">
-            {/* COUNTRY */}
-            <div className="ctp-card">
-              <h3>Select Country</h3>
-              {Object.keys(COUNTRY_CITY_DATA).map((c) => (
-                <button key={c} onClick={() => {
-                  setCountry(c);
-                  setCity("");
-                }}>
-                  {c}
-                </button>
-              ))}
-            </div>
-
-            {/* CITY */}
-            {country && (
-              <div className="ctp-card">
-                <h3>Select City</h3>
-                {cityOptions.map((c) => (
-                  <button key={c} onClick={() => setCity(c)}>
-                    {c}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* SIGHTSEEING */}
-            {city && (
-              <div className="ctp-card">
-                <h3>Sightseeing</h3>
-                {sightseeingOptions.map((s) => (
-                  <button
-                    key={s}
-                    onClick={() =>
-                      setSightseeing((prev) =>
-                        prev.includes(s)
-                          ? prev.filter((x) => x !== s)
-                          : [...prev, s]
-                      )
-                    }
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* DATES */}
-            <div className="ctp-card">
-              <h3>Dates</h3>
-              <input type="date" onChange={(e) => setStartDate(e.target.value)} />
-              <input type="date" onChange={(e) => setEndDate(e.target.value)} />
-            </div>
-
-            {/* BUDGET */}
-            <div className="ctp-card">
-              <h3>Budget</h3>
-              <input
-                type="range"
-                min={10000}
-                max={300000}
-                value={budget}
-                onChange={(e) => setBudget(Number(e.target.value))}
-              />
-              <p>₹{budget}</p>
-            </div>
-
-            {/* CTA */}
-            <button
-              onClick={addPlanToCart}
-              disabled={!isReady}
-              className="btn btn-primary"
-            >
-              Add to Cart <FaArrowRight />
-            </button>
+            <button onClick={addPlanToCart}>Add to Cart</button>
           </div>
 
-          {/* SUMMARY */}
-          <div className="ctp-side">
-            <h3>Summary</h3>
+          <aside className="ctp-side">
+            <div className="side-card">
+              <h3>Summary</h3>
+              <p>{summary.destination}</p>
+              <p>{summary.budget}</p>
 
-            <p>{country} - {city}</p>
-            <p>{tripNights} nights</p>
-            <p>₹{budget}</p>
+              <div className="kv">
+                <span>Advance Payable</span>
+                <strong>₹1000</strong>
+              </div>
 
-            <hr />
-
-            <p><strong>Advance:</strong> ₹1000</p>
-            <p style={{ fontSize: "0.8rem" }}>
-              ₹1000 will be adjusted in final payment
-            </p>
-          </div>
+              <p style={{ fontSize: "0.85rem" }}>
+                ₹1000 will be adjusted in final payment.
+              </p>
+            </div>
+          </aside>
         </div>
       </div>
     </PageWrapper>
