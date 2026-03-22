@@ -5,6 +5,11 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 const { decrypt } = require("./ccavenue");
 const supabase = require("./supabase");
+const { sendPaymentConfirmation } = require("./mailer");
+
+/* Import routers */
+const paymentRouter = require("./payment");
+const authRouter = require("./auth");
 
 const app = express();
 
@@ -23,6 +28,13 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.get("/", (req, res) => {
   res.send("Backend running 🚀");
 });
+
+/* ================================
+   MOUNT ROUTERS
+================================ */
+
+app.use("/api", paymentRouter);  // handles /api/initiate-payment, /api/admin/bookings
+app.use("/api/auth", authRouter); // handles /api/auth/login, /api/auth/me
 
 /* ================================
    SAVE BOOKING (FROM CART)
@@ -110,12 +122,12 @@ app.get("/api/bookings", async (req, res) => {
 });
 
 /* ================================
-   CCAVENUE PAYMENT RESPONSE
+   CCAVENUE PAYMENT RESPONSE (SUCCESS/FAILURE)
 ================================ */
 
 app.post("/payment-response", async (req, res) => {
 
-  const frontend = process.env.FRONTEND_BASE_URL || "http://localhost:3000";
+  const frontend = process.env.FRONTEND_BASE_URL || "https://travel-website-4-tor2.onrender.com";
 
   try {
 
@@ -129,14 +141,19 @@ app.post("/payment-response", async (req, res) => {
 
     const params = new URLSearchParams(decryptedData);
 
-    const orderId = params.get("order_id");
-    const amount = params.get("amount");
-    const status = params.get("order_status");
+    const orderId     = params.get("order_id");
+    const amount      = params.get("amount");
+    const status      = params.get("order_status");
+    const billingName = params.get("billing_name");
+    const billingEmail = params.get("billing_email");
+    const billingTel  = params.get("billing_tel");
+    const trackingId  = params.get("tracking_id");
 
-    console.log("Payment response:", orderId, status);
+    console.log(`Payment response: Order=${orderId}, Status=${status}, Amount=${amount}`);
 
     if (status === "Success") {
 
+      /* Update booking status in Supabase */
       const { error } = await supabase
         .from("bookings")
         .update({
@@ -145,18 +162,115 @@ app.post("/payment-response", async (req, res) => {
         })
         .eq("order_id", orderId);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase update error:", error);
+      }
 
-      return res.redirect(`${frontend}/payment-success?order_id=${orderId}`);
+      /* Fetch booking details for email */
+      let bookingDetails = {};
+      try {
+        const { data: booking } = await supabase
+          .from("bookings")
+          .select("*")
+          .eq("order_id", orderId)
+          .single();
+
+        if (booking) {
+          bookingDetails = booking;
+        }
+      } catch (fetchErr) {
+        console.error("Booking fetch for email error:", fetchErr);
+      }
+
+      /* Send confirmation email */
+      try {
+        await sendPaymentConfirmation({
+          orderId,
+          amount,
+          name: billingName || bookingDetails.name,
+          email: billingEmail,
+          phone: billingTel || bookingDetails.phone,
+          packageName: bookingDetails.package_name || null,
+          travelDate: bookingDetails.travel_date || null,
+          travellerCount: bookingDetails.traveller_count || null,
+        });
+      } catch (emailErr) {
+        console.error("Email send error (non-blocking):", emailErr);
+        // Don't block redirect if email fails
+      }
+
+      return res.redirect(
+        `${frontend}/payment-success?order_id=${encodeURIComponent(orderId)}&amount=${encodeURIComponent(amount)}&tracking_id=${encodeURIComponent(trackingId || "")}`
+      );
     }
 
-    return res.redirect(`${frontend}/payment-failed`);
+    /* Handle other statuses: Failure, Aborted, Invalid */
+    const failReason = status || "Unknown";
+
+    /* Update booking status */
+    if (orderId) {
+      await supabase
+        .from("bookings")
+        .update({ status: failReason })
+        .eq("order_id", orderId);
+    }
+
+    return res.redirect(
+      `${frontend}/payment-failed?order_id=${encodeURIComponent(orderId || "")}&reason=${encodeURIComponent(failReason)}`
+    );
 
   } catch (err) {
 
     console.error("Payment callback error:", err);
 
     return res.redirect(`${frontend}/payment-failed`);
+
+  }
+
+});
+
+/* ================================
+   CCAVENUE PAYMENT CANCEL
+================================ */
+
+app.post("/payment-cancel", async (req, res) => {
+
+  const frontend = process.env.FRONTEND_BASE_URL || "https://travel-website-4-tor2.onrender.com";
+
+  try {
+
+    const encryptedResponse = req.body.encResp;
+
+    if (encryptedResponse) {
+
+      const decryptedData = decrypt(encryptedResponse);
+      const params = new URLSearchParams(decryptedData);
+      const orderId = params.get("order_id");
+      const status = params.get("order_status") || "Cancelled";
+
+      console.log(`Payment cancelled: Order=${orderId}, Status=${status}`);
+
+      /* Update booking status */
+      if (orderId) {
+        await supabase
+          .from("bookings")
+          .update({ status: "Cancelled" })
+          .eq("order_id", orderId);
+      }
+
+      return res.redirect(
+        `${frontend}/payment-failed?order_id=${encodeURIComponent(orderId || "")}&reason=Cancelled`
+      );
+
+    }
+
+    return res.redirect(`${frontend}/payment-failed?reason=Cancelled`);
+
+  } catch (err) {
+
+    console.error("Payment cancel error:", err);
+
+    return res.redirect(`${frontend}/payment-failed?reason=Cancelled`);
 
   }
 
